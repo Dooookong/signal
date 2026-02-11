@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>실시간 신호등 동기화 시스템</title>
+    <title>실시간 신호등 동기화</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
@@ -53,32 +53,35 @@
         #time { font-size: 80px; font-weight: 700; margin: 20px 0; font-variant-numeric: tabular-nums; }
         #state { font-size: 18px; margin-bottom: 30px; font-weight: 500; }
 
-        /* 제어 버튼 레이아웃 */
         .sync-panel {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            max-width: 300px;
+            gap: 12px;
+            max-width: 320px;
             margin: 0 auto;
         }
 
         .sync-btn {
-            padding: 15px 10px;
+            padding: 18px 10px;
             border: 1px solid #3a3d40;
             border-radius: 12px;
-            background: #222;
+            background: #1a1c1e;
             color: white;
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        .sync-btn.red-btn { border-left: 4px solid var(--red-main); }
-        .sync-btn.green-btn { border-left: 4px solid var(--green-main); }
-        .sync-btn:active { background: #444; transform: scale(0.95); }
+        .sync-btn.red-btn { border-left: 5px solid var(--red-main); }
+        .sync-btn.green-btn { border-left: 5px solid var(--green-main); }
+        .sync-btn:active { background: #333; transform: scale(0.95); }
         
-        .panel-label { grid-column: span 2; font-size: 12px; color: #666; margin-top: 15px; }
+        .panel-label { grid-column: span 2; font-size: 12px; color: #666; margin-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -94,11 +97,11 @@
     <div id="state">버튼을 눌러 동기화하세요</div>
 
     <div class="sync-panel">
-        <div class="panel-label">실제 신호가 바뀌는 순간 누르세요</div>
-        <button class="sync-btn red-btn" data-index="0">🔴 RED 1 시작</button>
-        <button class="sync-btn green-btn" data-index="1">🟢 GREEN 1 시작</button>
-        <button class="sync-btn red-btn" data-index="2">🔴 RED 2 시작</button>
-        <button class="sync-btn green-btn" data-index="3">🟢 GREEN 2 시작</button>
+        <div class="panel-label">실제 신호가 시작되는 순간 누르세요</div>
+        <button class="sync-btn red-btn" data-index="0">🔴 RED 1</button>
+        <button class="sync-btn green-btn" data-index="1">🟢 GREEN 1</button>
+        <button class="sync-btn red-btn" data-index="2">🔴 RED 2</button>
+        <button class="sync-btn green-btn" data-index="3">🟢 GREEN 2</button>
     </div>
 
 <script type="module">
@@ -118,12 +121,12 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // ★★★ [측정 데이터 반영 부분] ★★★
+    // [측정 데이터]
     const PATTERN = [
-        { state: "RED", duration: 110 },    // RED 1
-        { state: "GREEN", duration: 26.5 }, // GREEN 1 (26.5초)
-        { state: "RED", duration: 35.5 },   // RED 2 (35.5초)
-        { state: "GREEN", duration: 26.5 }  // GREEN 2
+        { state: "RED", duration: 110 },
+        { state: "GREEN", duration: 26.5 },
+        { state: "RED", duration: 35.5 },
+        { state: "GREEN", duration: 26.5 }
     ];
 
     const TOTAL = PATTERN.reduce((sum, p) => sum + p.duration, 0);
@@ -135,22 +138,18 @@
     const timeText = document.getElementById("time");
     const clockText = document.getElementById("clock");
 
-    // 동기화 버튼 로직
+    // 동기화 버튼 클릭 이벤트
     document.querySelectorAll('.sync-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const index = parseInt(btn.dataset.index);
-            
-            // 핵심: 선택한 단계의 시작 지점(offset)을 계산
+        btn.onclick = () => {
+            const index = parseInt(btn.getAttribute('data-index'));
             let offset = 0;
             for(let i=0; i < index; i++) {
                 offset += PATTERN[i].duration;
             }
-
-            // 서버에 (현재시간 - 앞선 신호들의 누적시간)을 저장하여 동기화
-            const newStartTime = Math.floor(Date.now() / 1000) - offset;
+            // 현재 시각에서 해당 패턴의 시작점(offset)만큼 뺀 시간을 startTime으로 설정
+            const newStartTime = (Date.now() / 1000) - offset;
             set(ref(db, "signal/start"), newStartTime);
-            alert(`${PATTERN[index].state} ${index === 0 || index === 2 ? (index/2 + 1) : Math.ceil(index/2)} 신호로 동기화되었습니다.`);
-        });
+        };
     });
 
     onValue(ref(db, "signal/start"), snapshot => {
@@ -158,40 +157,37 @@
     });
 
     function update() {
-        // 시계 업데이트
-        const nowTime = new Date();
-        clockText.innerText = "SEOUL " + nowTime.toLocaleTimeString("ko-KR", {hour12: false});
+        const now = new Date();
+        clockText.innerText = "SEOUL " + now.toLocaleTimeString("ko-KR", {hour12: false});
 
-        if (!startTime) return;
+        if (startTime) {
+            const currentTime = Date.now() / 1000;
+            let cycle = (currentTime - startTime) % TOTAL;
+            let accumulated = 0;
 
-        const now = Date.now() / 1000; // 밀리초 단위까지 계산하여 정밀도 향상
-        let cycle = (now - startTime) % TOTAL;
-        let accumulated = 0;
+            for (let step of PATTERN) {
+                if (cycle < accumulated + step.duration) {
+                    const remaining = Math.ceil(accumulated + step.duration - cycle);
+                    
+                    redLight.classList.toggle("active", step.state === "RED");
+                    greenLight.classList.toggle("active", step.state === "GREEN");
 
-        for (let step of PATTERN) {
-            if (cycle < accumulated + step.duration) {
-                const remaining = Math.ceil(accumulated + step.duration - cycle);
-                
-                redLight.classList.remove("active");
-                greenLight.classList.remove("active");
-
-                if (step.state === "GREEN") {
-                    greenLight.classList.add("active");
-                    stateText.innerText = "GO · 초록불";
-                    stateText.style.color = "var(--green-main)";
-                    timeText.style.color = "var(--green-main)";
-                } else {
-                    redLight.classList.add("active");
-                    stateText.innerText = "STOP · 빨간불";
-                    stateText.style.color = "var(--red-main)";
-                    timeText.style.color = "var(--red-main)";
+                    if (step.state === "GREEN") {
+                        stateText.innerText = "GO · 초록불";
+                        stateText.style.color = "var(--green-main)";
+                        timeText.style.color = "var(--green-main)";
+                    } else {
+                        stateText.innerText = "STOP · 빨간불";
+                        stateText.style.color = "var(--red-main)";
+                        timeText.style.color = "var(--red-main)";
+                    }
+                    timeText.innerText = remaining;
+                    break;
                 }
-                timeText.innerText = remaining;
-                break;
+                accumulated += step.duration;
             }
-            accumulated += step.duration;
         }
-        requestAnimationFrame(update); // setInterval보다 부드러운 업데이트
+        requestAnimationFrame(update);
     }
     update();
 </script>
