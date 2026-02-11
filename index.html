@@ -13,21 +13,21 @@ body {
 }
 
 #clock {
-  font-size: 24px;
+  font-size: 22px;
   margin: 20px;
 }
 
 .signal {
-  width: 120px;
-  margin: 30px auto;
+  width: 140px;
+  margin: 20px auto;
   padding: 20px;
   background: #222;
-  border-radius: 20px;
+  border-radius: 25px;
 }
 
 .light {
-  width: 70px;
-  height: 70px;
+  width: 80px;
+  height: 80px;
   margin: 15px auto;
   border-radius: 50%;
   background: #333;
@@ -37,22 +37,31 @@ body {
 
 .red.active {
   background: red;
-  box-shadow: 0 0 25px red;
+  box-shadow: 0 0 35px red;
 }
 
 .green.active {
   background: lime;
-  box-shadow: 0 0 25px lime;
+  box-shadow: 0 0 35px lime;
 }
 
 #status {
-  font-size: 28px;
-  margin-top: 20px;
+  font-size: 26px;
+  margin-top: 15px;
 }
 
+/* 🔥 핵심: 신호등 숫자 스타일 */
 #timer {
-  font-size: 22px;
+  font-size: 72px;
+  font-weight: bold;
   margin: 10px;
+  color: #ff3b3b;
+  text-shadow: 0 0 20px red;
+}
+
+.green-mode {
+  color: #00ff90 !important;
+  text-shadow: 0 0 20px lime !important;
 }
 
 button {
@@ -83,7 +92,7 @@ input {
 
 <body>
 
-<div id="clock">시간 동기화 중...</div>
+<div id="clock">동기화 중...</div>
 
 <div class="signal">
   <div id="redLight" class="light red"></div>
@@ -91,7 +100,7 @@ input {
 </div>
 
 <div id="status">대기중</div>
-<div id="timer"></div>
+<div id="timer">--</div>
 
 <button id="startBtn">🚦 신호 시작</button>
 <button id="adminBtn">🔐 관리자</button>
@@ -139,7 +148,6 @@ function getServerTime() {
 const startRef = ref(db, "signal/startTime");
 const patternRef = ref(db, "signal/pattern");
 
-// 기본 패턴
 let pattern = [
   { color: "red", duration: 60 },
   { color: "green", duration: 30 },
@@ -147,24 +155,21 @@ let pattern = [
   { color: "green", duration: 30 }
 ];
 
+/* 🔥 관리자 수정 적용 문제 해결 */
 onValue(patternRef, snap => {
-  if (snap.exists()) pattern = snap.val();
+  if (snap.exists()) {
+    pattern = Object.values(snap.val());   // 👈 핵심 수정
+  }
 });
 
-document.getElementById("startBtn").onclick = () => {
-  set(startRef, getServerTime());
-};
+startBtn.onclick = () => set(startRef, getServerTime());
 
-// 관리자 모드 🔐
-document.getElementById("adminBtn").onclick = () => {
+adminBtn.onclick = () => {
   const pw = prompt("비밀번호");
-  if (pw === "1234") {
-    document.getElementById("adminPanel").style.display = "block";
-  }
+  if (pw === "1234") adminPanel.style.display = "block";
 };
 
-// 적용 버튼
-document.getElementById("applyBtn").onclick = () => {
+applyBtn.onclick = () => {
 
   const newPattern = [
     { color: "red", duration: Number(red1.value) },
@@ -176,10 +181,7 @@ document.getElementById("applyBtn").onclick = () => {
   set(patternRef, newPattern);
 };
 
-// 리셋
-document.getElementById("resetBtn").onclick = () => {
-  set(startRef, getServerTime());
-};
+resetBtn.onclick = () => set(startRef, getServerTime());
 
 onValue(startRef, snap => {
   const startTime = snap.val();
@@ -209,6 +211,7 @@ onValue(startRef, snap => {
 
     redLight.classList.remove("active");
     greenLight.classList.remove("active");
+    timer.classList.remove("green-mode");
 
     if (current.color === "red") {
       redLight.classList.add("active");
@@ -216,9 +219,10 @@ onValue(startRef, snap => {
     } else {
       greenLight.classList.add("active");
       status.innerText = "🟢 초록불";
+      timer.classList.add("green-mode");
     }
 
-    timer.innerText = `${current.remaining}초`;
+    timer.innerText = current.remaining;
 
     requestAnimationFrame(update);
   }
@@ -226,15 +230,11 @@ onValue(startRef, snap => {
   update();
 });
 
-// 서버 시계 😎
+/* 서버 시계 */
 function updateClock() {
   const now = new Date(getServerTime());
-
-  const kr = new Date(
-    now.toLocaleString("en-US",{timeZone:"Asia/Seoul"})
-  );
-
-  clock.innerText = `KR 현재 시각: ${kr.toLocaleTimeString()}`;
+  const kr = new Date(now.toLocaleString("en-US",{timeZone:"Asia/Seoul"}));
+  clock.innerText = `현재 시각: ${kr.toLocaleTimeString()}`;
   requestAnimationFrame(updateClock);
 }
 
