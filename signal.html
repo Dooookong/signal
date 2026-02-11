@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>우리집 신호등</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body { text-align:center; font-family:Arial; margin-top:20px; }
+.clock { font-size:22px; margin-bottom:20px; }
+input { width:60px; font-size:16px; text-align:center; }
+button { font-size:14px; margin:5px; padding:5px 10px; }
+.state { font-size:50px; margin-top:20px; }
+.count { font-size:80px; }
+.next { font-size:28px; color:gray; }
+.pattern-row { margin:5px; }
+</style>
+</head>
+
+<body>
+
+<div class="clock" id="clock"></div>
+
+<h3>🚦 신호 패턴 설정</h3>
+
+<div id="patternEditor"></div>
+
+<button onclick="addStep()">+ 단계 추가</button>
+<button onclick="savePattern()">💾 저장</button>
+
+<div>
+<button onclick="setGreenNow()">🟢 지금 초록 시작</button>
+<button onclick="setRedNow()">🔴 지금 빨강 시작</button>
+</div>
+
+<div class="state" id="state"></div>
+<div class="count" id="time"></div>
+<div class="next" id="nextChange"></div>
+
+<script>
+
+// 🔵 기본 패턴
+let PATTERN = localStorage.getItem("pattern")
+    ? JSON.parse(localStorage.getItem("pattern"))
+    : [
+        { state: "RED", duration: 60 },
+        { state: "GREEN", duration: 30 },
+        { state: "RED", duration: 20 },
+        { state: "GREEN", duration: 30 }
+    ];
+
+let START_TIME = localStorage.getItem("startTime")
+    ? parseFloat(localStorage.getItem("startTime"))
+    : Date.now()/1000;
+
+let START_STATE = localStorage.getItem("startState")
+    ? localStorage.getItem("startState")
+    : "GREEN";
+
+// 패턴 UI 생성
+function renderEditor() {
+    const container = document.getElementById("patternEditor");
+    container.innerHTML = "";
+
+    PATTERN.forEach((step, index) => {
+        container.innerHTML += `
+            <div class="pattern-row">
+                <select id="state-${index}">
+                    <option value="RED" ${step.state==="RED"?"selected":""}>🔴 빨강</option>
+                    <option value="GREEN" ${step.state==="GREEN"?"selected":""}>🟢 초록</option>
+                </select>
+                <input type="number" id="duration-${index}" value="${step.duration}">
+                초
+                <button onclick="removeStep(${index})">❌</button>
+            </div>
+        `;
+    });
+}
+
+// 단계 추가
+function addStep() {
+    PATTERN.push({ state: "RED", duration: 30 });
+    renderEditor();
+}
+
+// 단계 삭제
+function removeStep(index) {
+    PATTERN.splice(index, 1);
+    renderEditor();
+}
+
+// 패턴 저장
+function savePattern() {
+    PATTERN = PATTERN.map((_, index) => ({
+        state: document.getElementById(`state-${index}`).value,
+        duration: parseInt(document.getElementById(`duration-${index}`).value)
+    }));
+
+    localStorage.setItem("pattern", JSON.stringify(PATTERN));
+}
+
+// 동기화 버튼
+function setGreenNow() {
+    START_TIME = Date.now()/1000;
+    START_STATE = "GREEN";
+    localStorage.setItem("startTime", START_TIME);
+    localStorage.setItem("startState", START_STATE);
+}
+
+function setRedNow() {
+    START_TIME = Date.now()/1000;
+    START_STATE = "RED";
+    localStorage.setItem("startTime", START_TIME);
+    localStorage.setItem("startState", START_STATE);
+}
+
+// 서울 시계
+function updateClock() {
+    const now = new Date();
+    const seoulTime = now.toLocaleString("ko-KR", {
+        timeZone: "Asia/Seoul",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+    });
+
+    document.getElementById("clock").innerText =
+        "현재 시각: " + seoulTime;
+}
+
+// 신호 계산
+function updateSignal() {
+
+    const now = Date.now()/1000;
+    const TOTAL = PATTERN.reduce((sum, p) => sum + p.duration, 0);
+
+    let elapsed = now - START_TIME;
+    let cycle = elapsed % TOTAL;
+
+    // 시작 상태 보정
+    if (START_STATE === "RED") {
+        const firstGreenIndex = PATTERN.findIndex(p => p.state === "GREEN");
+        if (firstGreenIndex !== -1) {
+            const offset = PATTERN
+                .slice(0, firstGreenIndex)
+                .reduce((sum, p) => sum + p.duration, 0);
+            cycle = (cycle + offset) % TOTAL;
+        }
+    }
+
+    let accumulated = 0;
+
+    for (let step of PATTERN) {
+
+        if (cycle < accumulated + step.duration) {
+
+            const remaining = Math.floor(accumulated + step.duration - cycle);
+
+            if (step.state === "GREEN") {
+                document.getElementById("state").innerText = "🟢 지금 초록불입니다";
+                document.getElementById("nextChange").innerText =
+                    "🔴 빨간불까지 " + remaining + "초";
+            } else {
+                document.getElementById("state").innerText = "🔴 지금 빨간불입니다";
+                document.getElementById("nextChange").innerText =
+                    "🟢 초록불까지 " + remaining + "초";
+            }
+
+            document.getElementById("time").innerText = remaining + "초";
+            break;
+        }
+
+        accumulated += step.duration;
+    }
+}
+
+function updateAll() {
+    updateClock();
+    updateSignal();
+}
+
+renderEditor();
+setInterval(updateAll, 1000);
+updateAll();
+
+</script>
+
+</body>
+</html>
