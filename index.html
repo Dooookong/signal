@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Signal Live - 정밀 신호 동기화</title>
+    <title>신호등</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
@@ -202,7 +202,7 @@
                     const sEl = document.getElementById('state');
                     const tEl = document.getElementById('time');
                     
-                    sEl.innerText = isRed ? "STOP · 빨간불" : "GO · 초록불";
+                    sEl.innerText = isRed ? "STOP  ·  빨간불" : "GO  ·  초록불";
                     sEl.style.color = isRed ? "var(--red)" : "var(--green)";
                     tEl.innerText = rem;
                     tEl.style.color = isRed ? "var(--red)" : "var(--green)";
@@ -217,3 +217,4 @@
 </script>
 </body>
 </html>
+
