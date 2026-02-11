@@ -2,74 +2,64 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>시그널 맵 - 전국 신호등 실시간 지도</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signal Map - 실시간 신호등 지도</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=33ea8f4ecaedf7e2a2e4f457211594d5"></script>
+    
+    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=33ea8f4ecaedf7e2a2ef457211594d5"></script>
+    
     <style>
-        :root { --bg: #0f1113; --red: #ff3b3b; --green: #00ff90; --panel: #1a1c1e; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: "Pretendard", sans-serif; background: var(--bg); overflow: hidden; }
-        
+        :root { --bg: #0f1113; --red: #ff3b3b; --green: #00ff90; --card: #1c1e21; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); color: white; font-family: "Pretendard", sans-serif; overflow: hidden; }
         #map { width: 100%; height: 100%; z-index: 1; }
 
-        /* 하단 신호등 상세 정보 카드 */
-        #detailCard {
-            position: fixed; bottom: -400px; left: 0; right: 0; 
-            background: var(--panel); z-index: 100;
-            border-radius: 30px 30px 0 0; padding: 25px;
-            box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
-            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
-            text-align: center; color: white;
+        /* 하단 상세 정보 시트 */
+        #detailSheet {
+            position: fixed; bottom: -100%; left: 0; right: 0;
+            background: var(--card); z-index: 100;
+            border-radius: 30px 30px 0 0; padding: 30px 20px;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
+            transition: bottom 0.4s ease-out; text-align: center;
         }
-        #detailCard.active { bottom: 0; }
+        #detailSheet.active { bottom: 0; }
+        #timer { font-size: 70px; font-weight: 800; margin: 10px 0; }
+        
+        .lamp-box { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
+        .lamp { width: 15px; height: 15px; border-radius: 50%; background: #333; }
+        .lamp.red.on { background: var(--red); box-shadow: 0 0 15px var(--red); }
+        .lamp.green.on { background: var(--green); box-shadow: 0 0 15px var(--green); }
 
-        .traffic-light-mini {
-            display: flex; justify-content: center; gap: 15px; margin-bottom: 10px;
+        .sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .sync-btn { 
+            background: #2a2d2f; border: 1px solid #3a3d40; padding: 18px; 
+            color: #efefef; border-radius: 16px; font-size: 14px; font-weight: 700; cursor: pointer;
         }
-        .lamp { width: 40px; height: 40px; border-radius: 50%; background: #333; transition: 0.3s; }
-        .lamp.red.on { background: var(--red); box-shadow: 0 0 20px var(--red); }
-        .lamp.green.on { background: var(--green); box-shadow: 0 0 20px var(--green); }
-
-        #mainTimer { font-size: 50px; font-weight: 800; margin: 5px 0; }
-
-        /* 동기화 버튼 (세련된 그리드 스타일) */
-        .sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .sync-item { 
-            background: #2a2d30; border: none; padding: 12px; color: #ccc;
-            border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer;
-        }
-        .sync-item:active { transform: scale(0.95); background: #3a3d40; }
-
-        #closeBtn { position: absolute; top: 15px; right: 20px; background: none; border: none; color: #666; font-size: 20px; }
     </style>
 </head>
 <body>
 
     <div id="map"></div>
 
-    <div id="detailCard">
-        <button id="closeBtn">✕</button>
-        <div id="nodeName" style="font-size: 14px; color: #aaa; margin-bottom: 15px;">신호등 위치</div>
-        <div class="traffic-light-mini">
+    <div id="detailSheet">
+        <div style="color:#888; font-size:14px;">서울 시청 교차로</div>
+        <div id="timer">--</div>
+        <div class="lamp-box">
             <div id="l-red" class="lamp red"></div>
             <div id="l-green" class="lamp green"></div>
         </div>
-        <div id="mainTimer">--</div>
-        <div id="mainState" style="font-size: 16px; font-weight: 600;">마커를 선택하세요</div>
-
         <div class="sync-grid">
-            <button class="sync-item" onclick="sync(0)">R1 시작</button>
-            <button class="sync-item" onclick="sync(1)">G1 시작</button>
-            <button class="sync-item" onclick="sync(2)">R2 시작</button>
-            <button class="sync-item" onclick="sync(3)">G2 시작</button>
+            <button class="sync-btn" onclick="sync(0)">🔴 R1 시작</button>
+            <button class="sync-btn" onclick="sync(1)">🟢 G1 시작</button>
+            <button class="sync-btn" onclick="sync(2)">🔴 R2 시작</button>
+            <button class="sync-btn" onclick="sync(3)">🟢 G2 시작</button>
         </div>
+        <button onclick="document.getElementById('detailSheet').classList.remove('active')" style="margin-top:20px; background:none; border:none; color:#555;">닫기</button>
     </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    // Firebase 설정 (본인 정보 유지)
     const firebaseConfig = {
         apiKey: "AIzaSyAxwM-IBryLUHgCkOCFphd2GVhqILAINAk",
         authDomain: "signal-902a9.firebaseapp.com",
@@ -79,66 +69,50 @@
         messagingSenderId: "1040774154277",
         appId: "1:1040774154277:web:21c0ca2b2b2e9f6dca17cc"
     };
+
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // [전국 확장용 데이터 구조 예시]
-    const PATTERN = [110, 26.5, 35.5, 26.5]; 
+    const PATTERN = [110, 26.5, 35.5, 26.5];
     const TOTAL = PATTERN.reduce((a, b) => a + b, 0);
     let startTime = null;
 
     // 카카오 지도 초기화
-    const container = document.getElementById('map');
-    const options = { center: new kakao.maps.LatLng(37.566826, 126.9786567), level: 3 };
-    const map = new kakao.maps.Map(container, options);
-
-    // 마커 생성
-    const marker = new kakao.maps.Marker({
-        position: new kakao.maps.LatLng(37.566826, 126.9786567),
-        map: map
+    const map = new kakao.maps.Map(document.getElementById('map'), {
+        center: new kakao.maps.LatLng(37.5668, 126.9786),
+        level: 3
     });
 
-    // 마커 클릭 시 카드 노출
-    kakao.maps.event.addListener(marker, 'click', function() {
-        document.getElementById('detailCard').classList.add('active');
-        document.getElementById('nodeName').innerText = "서울 시청 앞 교차로";
+    const marker = new kakao.maps.Marker({ position: map.getCenter(), map: map });
+    kakao.maps.event.addListener(marker, 'click', () => {
+        document.getElementById('detailSheet').classList.add('active');
     });
 
-    document.getElementById('closeBtn').onclick = () => document.getElementById('detailCard').classList.remove('active');
-
-    // 동기화 함수 (전역 연결)
+    // 동기화 함수 (전역 window 객체에 등록하여 에러 방지)
     window.sync = (index) => {
         let offset = 0;
         for(let i=0; i<index; i++) offset += PATTERN[i];
-        const newStart = (Date.now() / 1000) - offset;
-        set(ref(db, "signal/start"), newStart);
+        set(ref(db, "signal/start"), (Date.now() / 1000) - offset);
     };
 
-    onValue(ref(db, "signal/start"), snap => startTime = snap.val());
+    onValue(ref(db, "signal/start"), snap => {
+        startTime = snap.val();
+    });
 
-    // 실시간 루프
     function update() {
         if(startTime) {
             const now = Date.now() / 1000;
             let cycle = (now - startTime) % TOTAL;
             let acc = 0;
-            
-            const lRed = document.getElementById('l-red');
-            const lGreen = document.getElementById('l-green');
-            const timer = document.getElementById('mainTimer');
-            const state = document.getElementById('mainState');
-
             for(let i=0; i<PATTERN.length; i++) {
                 if(cycle < acc + PATTERN[i]) {
                     const rem = Math.ceil(acc + PATTERN[i] - cycle);
                     const isRed = (i === 0 || i === 2);
-                    
-                    lRed.classList.toggle('on', isRed);
-                    lGreen.classList.toggle('on', !isRed);
-                    timer.innerText = rem;
-                    timer.style.color = isRed ? "var(--red)" : "var(--green)";
-                    state.innerText = isRed ? "STOP" : "GO";
-                    state.style.color = timer.style.color;
+                    document.getElementById('l-red').classList.toggle('on', isRed);
+                    document.getElementById('l-green').classList.toggle('on', !isRed);
+                    const t = document.getElementById('timer');
+                    t.innerText = rem;
+                    t.style.color = isRed ? "var(--red)" : "var(--green)";
                     break;
                 }
                 acc += PATTERN[i];
