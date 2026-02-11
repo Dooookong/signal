@@ -184,8 +184,9 @@ applyBtn.onclick = () => {
 resetBtn.onclick = () => set(startRef, getServerTime());
 
 onValue(startRef, snap => {
-  const startTime = snap.val();
-  if (!startTime) return;
+  const startTime = Number(snap.val());
+  if (!startTime || isNaN(startTime)) return;
+
 
   function update() {
 
@@ -243,4 +244,5 @@ updateClock();
 
 </body>
 </html>
+
 
