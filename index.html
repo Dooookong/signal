@@ -1,29 +1,116 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>우리집 신호등</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>신호등</title>
 
 <style>
-body { text-align:center; font-family:Arial; margin-top:30px; }
-.clock { font-size:22px; margin-bottom:20px; }
-.state { font-size:40px; margin-top:30px; }
-.count { font-size:70px; }
-button { font-size:20px; padding:10px 20px; margin:10px; }
+body {
+  font-family: sans-serif;
+  text-align: center;
+  background: #111;
+  color: white;
+}
+
+#clock {
+  font-size: 24px;
+  margin: 20px;
+}
+
+.signal {
+  width: 120px;
+  margin: 30px auto;
+  padding: 20px;
+  background: #222;
+  border-radius: 20px;
+}
+
+.light {
+  width: 70px;
+  height: 70px;
+  margin: 15px auto;
+  border-radius: 50%;
+  background: #333;
+  transition: 0.3s;
+  box-shadow: inset 0 0 10px black;
+}
+
+.red.active {
+  background: red;
+  box-shadow: 0 0 25px red;
+}
+
+.green.active {
+  background: lime;
+  box-shadow: 0 0 25px lime;
+}
+
+#status {
+  font-size: 28px;
+  margin-top: 20px;
+}
+
+#timer {
+  font-size: 22px;
+  margin: 10px;
+}
+
+button {
+  padding: 10px 20px;
+  margin: 10px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.admin-panel {
+  margin-top: 30px;
+  padding: 15px;
+  background: #222;
+  border-radius: 15px;
+  display: none;
+}
+
+input {
+  padding: 8px;
+  margin: 5px;
+  width: 80px;
+  text-align: center;
+}
 </style>
 </head>
 
 <body>
 
-<div class="clock" id="clock"></div>
-<div class="state" id="state"></div>
-<div class="count" id="time"></div>
+<div id="clock">시간 동기화 중...</div>
 
-<button onclick="setStart()">🚦 지금 신호 시작</button>
+<div class="signal">
+  <div id="redLight" class="light red"></div>
+  <div id="greenLight" class="light green"></div>
+</div>
+
+<div id="status">대기중</div>
+<div id="timer"></div>
+
+<button id="startBtn">🚦 신호 시작</button>
+<button id="adminBtn">🔐 관리자</button>
+
+<div class="admin-panel" id="adminPanel">
+
+  <h3>관리자 설정</h3>
+
+  🔴 빨간불(1) <input id="red1" value="60"> 초<br>
+  🟢 초록불(1) <input id="green1" value="30"> 초<br>
+  🔴 빨간불(2) <input id="red2" value="20"> 초<br>
+  🟢 초록불(2) <input id="green2" value="30"> 초<br>
+
+  <button id="applyBtn">적용</button>
+  <button id="resetBtn">리셋</button>
+
+</div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -40,74 +127,118 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const PATTERN = [
-    { state: "RED", duration: 60 },
-    { state: "GREEN", duration: 30 },
-    { state: "RED", duration: 20 },
-    { state: "GREEN", duration: 30 }
+const offsetRef = ref(db, ".info/serverTimeOffset");
+let serverOffset = 0;
+
+onValue(offsetRef, snap => serverOffset = snap.val());
+
+function getServerTime() {
+  return Date.now() + serverOffset;
+}
+
+const startRef = ref(db, "signal/startTime");
+const patternRef = ref(db, "signal/pattern");
+
+// 기본 패턴
+let pattern = [
+  { color: "red", duration: 60 },
+  { color: "green", duration: 30 },
+  { color: "red", duration: 20 },
+  { color: "green", duration: 30 }
 ];
 
-const TOTAL = PATTERN.reduce((sum, p) => sum + p.duration, 0);
-
-let startTime = null;
-
-function updateClock() {
-    const now = new Date();
-    const seoulTime = now.toLocaleString("ko-KR", {
-        timeZone: "Asia/Seoul",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false
-    });
-
-    document.getElementById("clock").innerText =
-        "🇰🇷 현재 시각 (서울): " + seoulTime;
-}
-
-window.setStart = function() {
-    set(ref(db, "signal/start"), Math.floor(Date.now() / 1000));
-};
-
-onValue(ref(db, "signal/start"), snapshot => {
-    startTime = snapshot.val();
+onValue(patternRef, snap => {
+  if (snap.exists()) pattern = snap.val();
 });
 
-function updateSignal() {
+document.getElementById("startBtn").onclick = () => {
+  set(startRef, getServerTime());
+};
 
-    if (!startTime) return;
+// 관리자 모드 🔐
+document.getElementById("adminBtn").onclick = () => {
+  const pw = prompt("비밀번호");
+  if (pw === "1234") {
+    document.getElementById("adminPanel").style.display = "block";
+  }
+};
 
-    const now = Math.floor(Date.now() / 1000);
-    let cycle = (now - startTime) % TOTAL;
+// 적용 버튼
+document.getElementById("applyBtn").onclick = () => {
 
-    let accumulated = 0;
+  const newPattern = [
+    { color: "red", duration: Number(red1.value) },
+    { color: "green", duration: Number(green1.value) },
+    { color: "red", duration: Number(red2.value) },
+    { color: "green", duration: Number(green2.value) }
+  ];
 
-    for (let step of PATTERN) {
+  set(patternRef, newPattern);
+};
 
-        if (cycle < accumulated + step.duration) {
+// 리셋
+document.getElementById("resetBtn").onclick = () => {
+  set(startRef, getServerTime());
+};
 
-            const remaining = accumulated + step.duration - cycle;
+onValue(startRef, snap => {
+  const startTime = snap.val();
+  if (!startTime) return;
 
-            document.getElementById("state").innerText =
-                step.state === "GREEN" ? "🟢 초록불" : "🔴 빨간불";
+  function update() {
 
-            document.getElementById("time").innerText =
-                remaining + "초";
+    const now = getServerTime();
+    const elapsed = Math.floor((now - startTime) / 1000);
 
-            break;
-        }
+    const total = pattern.reduce((s,p)=>s+p.duration,0);
+    const pos = elapsed % total;
 
-        accumulated += step.duration;
+    let acc = 0;
+    let current;
+
+    for (const p of pattern) {
+      if (pos < acc + p.duration) {
+        current = {
+          color: p.color,
+          remaining: acc + p.duration - pos
+        };
+        break;
+      }
+      acc += p.duration;
     }
+
+    redLight.classList.remove("active");
+    greenLight.classList.remove("active");
+
+    if (current.color === "red") {
+      redLight.classList.add("active");
+      status.innerText = "🔴 빨간불";
+    } else {
+      greenLight.classList.add("active");
+      status.innerText = "🟢 초록불";
+    }
+
+    timer.innerText = `${current.remaining}초`;
+
+    requestAnimationFrame(update);
+  }
+
+  update();
+});
+
+// 서버 시계 😎
+function updateClock() {
+  const now = new Date(getServerTime());
+
+  const kr = new Date(
+    now.toLocaleString("en-US",{timeZone:"Asia/Seoul"})
+  );
+
+  clock.innerText = `KR 현재 시각: ${kr.toLocaleTimeString()}`;
+  requestAnimationFrame(updateClock);
 }
 
-function updateAll() {
-    updateClock();
-    updateSignal();
-}
-
-setInterval(updateAll, 1000);
-
+updateClock();
 </script>
 
 </body>
