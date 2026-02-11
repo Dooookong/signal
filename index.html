@@ -4,80 +4,66 @@
     <meta charset="UTF-8">
     <title>신호등</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚦</text></svg>">
-    
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
         :root {
             --bg: #0b0c0e;
-            --card: #16171a;
-            --inner-card: #1f2124;
+            --signal-body: #1a1a1a;
             --red: #ff3b3b;
             --green: #00ff90;
-            --text-main: #ececec;
-            --text-dim: #666;
+            --off: #252525;
         }
 
         body { 
-            background-color: var(--bg); 
-            color: var(--text-main); 
-            text-align: center; 
-            font-family: "Pretendard", -apple-system, sans-serif; 
-            margin: 0; padding: 40px 20px;
-            display: flex; flex-direction: column; align-items: center;
-            min-height: 100vh;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
+            background-color: var(--bg); color: #ececec; text-align: center; 
+            font-family: "Pretendard", sans-serif; margin: 0; padding: 40px 20px;
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
         }
 
-        /* 상단 날짜/시계 */
-        #top-bar { 
-            margin-bottom: 30px; 
-            border-bottom: 1px solid #222; padding-bottom: 15px; width: 200px;
-        }
-        .date-display { font-size: 15px; font-weight: 500; color: var(--text-dim); display: block; letter-spacing: 1px; }
-        .time-display { font-size: 24px; font-weight: 700; color: var(--text-main); display: block; margin-top: 5px; font-variant-numeric: tabular-nums; }
+        #top-bar { margin-bottom: 30px; border-bottom: 1px solid #222; padding-bottom: 15px; width: 200px; }
+        .date-display { font-size: 14px; color: #666; display: block; letter-spacing: 1px; }
+        .time-display { font-size: 22px; font-weight: 700; display: block; margin-top: 5px; font-variant-numeric: tabular-nums; }
 
-        /* 신호등 본체 */
-        .traffic-light {
-            width: 100px; background: #111; padding: 15px 8px; border-radius: 45px;
-            margin: 0 auto; box-shadow: 0 20px 40px rgba(0,0,0,0.8);
-            border: 1px solid #222;
+        /* 보행자 신호등 본체 (사각형) */
+        .pedestrian-signal {
+            width: 130px; background: var(--signal-body); padding: 15px; border-radius: 25px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 0 2px rgba(255,255,255,0.1);
+            border: 4px solid #333; margin-bottom: 20px;
         }
 
-        .light { width: 70px; height: 70px; background-color: #1a1a1a; border-radius: 50%; margin: 10px auto; transition: 0.4s; }
-        .light.red.active { background-color: var(--red); box-shadow: 0 0 40px rgba(255, 59, 59, 0.4); }
-        .light.green.active { background-color: var(--green); box-shadow: 0 0 40px rgba(0, 255, 144, 0.4); }
+        /* 램프 칸 */
+        .lamp-section {
+            width: 100px; height: 100px; background: #000; border-radius: 15px;
+            margin: 10px auto; display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden;
+        }
 
-        #time { font-size: 75px; font-weight: 800; margin: 15px 0 0 0; font-variant-numeric: tabular-nums; letter-spacing: -2px; }
-        #state { font-size: 18px; margin-bottom: 35px; font-weight: 700; letter-spacing: -1px; }
-
-        /* 제어 컨테이너 */
-        .sync-container { width: 100%; max-width: 320px; background: var(--card); padding: 15px; border-radius: 25px; border: 1px solid #25272a; }
-        .sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        /* 사람 아이콘 SVG */
+        .walker-svg { width: 70px; height: 70px; fill: var(--off); transition: 0.2s; }
         
-        .sync-btn { 
-            padding: 18px 5px; border: 1px solid #2a2c30; border-radius: 15px; 
-            background: var(--inner-card); color: #fff; font-size: 14px; font-weight: 700; 
-            cursor: pointer; transition: 0.2s;
-        }
+        /* 활성화 상태 */
+        .red-active .walker-svg.stop { fill: var(--red); filter: drop-shadow(0 0 15px var(--red)); }
+        .green-active .walker-svg.walk { fill: var(--green); filter: drop-shadow(0 0 15px var(--green)); }
+
+        /* 초록불 깜빡임 애니메이션 */
+        @keyframes blink { 50% { fill: var(--off); filter: none; } }
+        .blinking .walker-svg.walk { animation: blink 0.5s step-end infinite; }
+
+        #time { font-size: 70px; font-weight: 800; margin: 5px 0; font-variant-numeric: tabular-nums; }
+        #state { font-size: 18px; margin-bottom: 30px; font-weight: 700; }
+
+        /* 버튼 컨테이너 */
+        .sync-container { width: 100%; max-width: 320px; background: #16171a; padding: 15px; border-radius: 20px; border: 1px solid #25272a; }
+        .sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .sync-btn { padding: 18px 5px; border: 1px solid #2a2c30; border-radius: 12px; background: #1f2124; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
         .sync-btn:active { transform: scale(0.96); background: #111; }
 
-        /* 관리자 패널 */
-        #admin-panel { 
-            display: none; width: 100%; max-width: 320px; background: var(--card); 
-            padding: 20px; border-radius: 25px; border: 1px solid #333; 
-            margin-top: 15px; box-sizing: border-box;
-        }
-        .admin-input-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .admin-input-group span { font-size: 13px; font-weight: 600; color: #888; }
-        input { 
-            width: 85px; padding: 10px; border-radius: 10px; border: 1px solid #333; 
-            background: #000; color: #fff; text-align: center; font-size: 15px; font-weight: 700;
-        }
-
-        .admin-toggle-btn { margin-top: 25px; background: none; border: none; color: #444; cursor: pointer; font-size: 12px; text-decoration: underline; }
-        .save-btn { width: 100%; padding: 15px; background: #fff; border: none; color: #000; border-radius: 15px; cursor: pointer; font-weight: 800; font-size: 14px; margin-top: 5px; }
+        .admin-toggle-btn { margin-top: 20px; background: none; border: none; color: #444; cursor: pointer; font-size: 12px; text-decoration: underline; }
+        #admin-panel { display: none; width: 100%; max-width: 320px; background: #16171a; padding: 20px; border-radius: 20px; border: 1px solid #333; margin-top: 15px; }
+        .admin-input-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; color: #888; }
+        input { width: 80px; padding: 8px; border-radius: 8px; border: 1px solid #333; background: #000; color: #fff; text-align: center; font-weight: 700; }
+        .save-btn { width: 100%; padding: 15px; background: #fff; border: none; color: #000; border-radius: 12px; cursor: pointer; font-weight: 800; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -87,9 +73,13 @@
         <span class="time-display" id="time-el">--:--:--</span>
     </div>
 
-    <div class="traffic-light">
-        <div id="redLight" class="light red"></div>
-        <div id="greenLight" class="light green"></div>
+    <div class="pedestrian-signal" id="signal-box">
+        <div class="lamp-section" id="red-section">
+            <svg class="walker-svg stop" viewBox="0 0 24 24"><path d="M12,2A2,2 0 0,1 14,4A2,2 0 0,1 12,6A2,2 0 0,1 10,4A2,2 0 0,1 12,2M11,22V15H8V9H16V15H13V22H11Z" /></svg>
+        </div>
+        <div class="lamp-section" id="green-section">
+            <svg class="walker-svg walk" viewBox="0 0 24 24"><path d="M13.5,5.5L12,5V3.5L13.5,2V5.5M10.2,12.5L8,11V9H15V13L13,11V16H11V21H9V16L10.2,12.5M12.5,22H14.5L16.5,15.5L18,17V22H20V15L17.5,12.5L16,14L15,12V10L14,9H10L9,10V14L11,15.5L12.5,22Z" /></svg>
+        </div>
     </div>
 
     <div id="time">--</div>
@@ -131,13 +121,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let PATTERN = [
-        { state: "RED", duration: 110 },
-        { state: "GREEN", duration: 26.5 },
-        { state: "RED", duration: 35.5 },
-        { state: "GREEN", duration: 26.5 }
-    ];
-
+    let PATTERN = [{state:"RED",duration:110},{state:"GREEN",duration:26.5},{state:"RED",duration:35.5},{state:"GREEN",duration:26.5}];
     let startTime = null;
 
     onValue(ref(db, "signal/pattern"), snap => {
@@ -155,50 +139,29 @@
     window.syncSignal = (index) => {
         let offset = 0;
         for(let i=0; i<index; i++) offset += Number(PATTERN[i].duration);
-        set(ref(db, "signal/start"), (Date.now() / 1000) - offset);
+        set(ref(db, "signal/start"), (Date.now()/1000) - offset);
     };
 
-    // [수정된 부분] 비밀번호 입력 로직 추가
     window.toggleAdmin = () => {
         const panel = document.getElementById('admin-panel');
-        
-        // 이미 열려있는 경우 바로 닫기
-        if (panel.style.display === 'block') {
-            panel.style.display = 'none';
-            return;
-        }
-
-        // 닫혀있는 경우 비밀번호 확인
-        const pw = prompt("비밀번호를 입력하세요");
-        if (pw === "1234") {
-            panel.style.display = 'block';
-        } else if (pw !== null) {
-            alert("비밀번호가 틀렸습니다.");
-        }
+        if(panel.style.display==='block') { panel.style.display='none'; return; }
+        if(prompt("비밀번호")==="1234") panel.style.display='block';
     };
 
     window.savePattern = () => {
         const newPattern = [
-            { state: "RED", duration: parseFloat(document.getElementById('in-r1').value) },
-            { state: "GREEN", duration: parseFloat(document.getElementById('in-g1').value) },
-            { state: "RED", duration: parseFloat(document.getElementById('in-r2').value) },
-            { state: "GREEN", duration: parseFloat(document.getElementById('in-g2').value) }
+            {state:"RED",duration:parseFloat(document.getElementById('in-r1').value)},
+            {state:"GREEN",duration:parseFloat(document.getElementById('in-g1').value)},
+            {state:"RED",duration:parseFloat(document.getElementById('in-r2').value)},
+            {state:"GREEN",duration:parseFloat(document.getElementById('in-g2').value)}
         ];
-        set(ref(db, "signal/pattern"), newPattern).then(() => {
-            alert("Settings saved.");
-            document.getElementById('admin-panel').style.display = 'none';
-        });
+        set(ref(db,"signal/pattern"), newPattern).then(() => { alert("Saved"); document.getElementById('admin-panel').style.display='none'; });
     };
 
     function update() {
         const now = new Date();
-        const year = now.getFullYear().toString().slice(-2);
-        const month = (now.getMonth() + 1).toString().padStart(2, '0');
-        const date = now.getDate().toString().padStart(2, '0');
-        const hms = now.toTimeString().split(' ')[0];
-
-        document.getElementById('date-el').innerText = `${year}.${month}.${date}`;
-        document.getElementById('time-el').innerText = hms;
+        document.getElementById('date-el').innerText = `${now.getFullYear().toString().slice(-2)}.${(now.getMonth()+1).toString().padStart(2,'0')}.${now.getDate().toString().padStart(2,'0')}`;
+        document.getElementById('time-el').innerText = now.toTimeString().split(' ')[0];
 
         if (startTime) {
             const currentTime = Date.now() / 1000;
@@ -210,14 +173,21 @@
                 if (cycle < acc + step.duration) {
                     const rem = Math.ceil(acc + step.duration - cycle);
                     const isRed = (step.state === "RED");
+                    const signalBox = document.getElementById('signal-box');
                     
-                    document.getElementById('redLight').classList.toggle("active", isRed);
-                    document.getElementById('greenLight').classList.toggle("active", !isRed);
+                    // 신호 상태 적용
+                    signalBox.className = isRed ? "pedestrian-signal red-active" : "pedestrian-signal green-active";
                     
+                    // 초록불 15초 남았을 때 깜빡임 조건
+                    if(!isRed && rem <= 15) {
+                        signalBox.classList.add('blinking');
+                    } else {
+                        signalBox.classList.remove('blinking');
+                    }
+
                     const sEl = document.getElementById('state');
                     const tEl = document.getElementById('time');
-                    
-                    sEl.innerText = isRed ? "STOP  ·  빨간불" : "GO  ·  초록불";
+                    sEl.innerText = isRed ? "STOP · 빨간불" : "GO · 초록불";
                     sEl.style.color = isRed ? "var(--red)" : "var(--green)";
                     tEl.innerText = rem;
                     tEl.style.color = isRed ? "var(--red)" : "var(--green)";
