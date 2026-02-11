@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>신호등</title>
+    <title>신호등 멀티 패턴 제어</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
@@ -13,24 +13,33 @@
             --green: #00e676;
             --off: #2c2c2c;
             --text-main: #ececec;
+            --accent: #3a86ff;
         }
 
         body { 
             background-color: var(--bg); color: var(--text-main); text-align: center; 
-            font-family: "Pretendard", sans-serif; margin: 0; padding: 30px 20px; /* 상하 패딩 조정 */
+            font-family: "Pretendard", sans-serif; margin: 0; padding: 30px 20px;
             display: flex; flex-direction: column; align-items: center; min-height: 100vh;
             overflow-y: auto; -webkit-overflow-scrolling: touch;
         }
 
-        #top-bar { margin-bottom: 30px; border-bottom: 1px solid #222; padding-bottom: 15px; width: 200px; }
+        #top-bar { margin-bottom: 20px; border-bottom: 1px solid #222; padding-bottom: 15px; width: 200px; }
         .date-display { font-size: 14px; color: #666; display: block; letter-spacing: 1px; }
         .time-display { font-size: 22px; font-weight: 700; display: block; margin-top: 5px; font-variant-numeric: tabular-nums; }
+
+        /* 버전 선택 탭 */
+        .version-selector { display: flex; gap: 8px; margin-bottom: 15px; width: 100%; max-width: 340px; }
+        .version-btn { 
+            flex: 1; padding: 10px; border-radius: 12px; border: 1px solid #333; 
+            background: #1a1a1a; color: #666; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.2s;
+        }
+        .version-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
 
         /* 신호등 본체 */
         .pedestrian-signal {
             width: 140px; background: var(--signal-body); padding: 25px; border-radius: 35px;
             box-shadow: 0 40px 80px rgba(0,0,0,0.6), inset 0 0 3px rgba(255,255,255,0.05);
-            border: 4px solid #222; margin-bottom: 40px; /* 하단 마진 조정 */
+            border: 4px solid #222; margin-bottom: 30px;
         }
 
         .lamp-section {
@@ -40,20 +49,9 @@
             position: relative;
         }
 
-        /* SVG 아이콘 스타일 */
         .walker-svg { width: 85px; height: 85px; fill: var(--off); transition: all 0.3s ease; }
-
-        /* 🔴 빨간불 활성화 */
-        .red-active .walker-svg.stop { 
-            fill: var(--red); 
-            filter: drop-shadow(0 0 12px rgba(255, 77, 77, 0.8)); 
-        }
-
-        /* 🟢 초록불 활성화 */
-        .green-active .walker-svg.walk { 
-            fill: var(--green); 
-            filter: drop-shadow(0 0 12px rgba(0, 230, 118, 0.8)); 
-        }
+        .red-active .walker-svg.stop { fill: var(--red); filter: drop-shadow(0 0 12px rgba(255, 77, 77, 0.8)); }
+        .green-active .walker-svg.walk { fill: var(--green); filter: drop-shadow(0 0 12px rgba(0, 230, 118, 0.8)); }
 
         @keyframes blink {
             0%, 100% { opacity: 1; filter: drop-shadow(0 0 12px rgba(0, 230, 118, 0.8)); }
@@ -61,38 +59,28 @@
         }
         .blinking .walker-svg.walk { animation: blink 1.2s infinite; }
 
-        #time { font-size: 80px; font-weight: 800; margin: 20px 0 10px 0; /* 상하 마진 조정 */ font-variant-numeric: tabular-nums; letter-spacing: -3px; }
-        #state { font-size: 18px; margin-bottom: 50px; /* 하단 마진 조정 */ font-weight: 600; color: #888; }
-
-        /* LED 램프 공통 스타일 */
-        .led-dot {
-            width: 8px; height: 8px; border-radius: 50%;
-            box-shadow: 0 0 5px currentColor;
-            display: inline-block;
-        }
-        .led-red { background-color: var(--red); color: var(--red); }
-        .led-green { background-color: var(--green); color: var(--green); }
+        #time { font-size: 80px; font-weight: 800; margin: 10px 0; font-variant-numeric: tabular-nums; letter-spacing: -3px; }
+        #state { font-size: 18px; margin-bottom: 30px; font-weight: 600; color: #888; }
 
         /* 제어 버튼 영역 */
-        .sync-container { width: 100%; max-width: 340px; background: #151618; padding: 20px; border-radius: 25px; border: 1px solid #2a2a2a; margin-bottom: 20px; /* 하단 마진 추가 */ }
+        .sync-container { width: 100%; max-width: 340px; background: #151618; padding: 20px; border-radius: 25px; border: 1px solid #2a2a2a; margin-bottom: 20px; }
         .sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        
         .sync-btn { 
             padding: 18px 10px; border: 1px solid #2a2a2a; border-radius: 16px; 
             background: #1e1f22; color: #bbb; font-size: 14px; font-weight: 700; 
             cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
-            transition: 0.2s;
         }
         .sync-btn:active { transform: scale(0.97); background: #111; }
-        .sync-btn span { position: relative; top: 1px; }
+        .led-dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 5px currentColor; display: inline-block; }
+        .led-red { background-color: var(--red); color: var(--red); }
+        .led-green { background-color: var(--green); color: var(--green); }
 
         /* 관리자 패널 */
-        .admin-toggle-btn { margin-top: 20px; /* 상단 마진 조정 */ background: none; border: none; color: #444; cursor: pointer; font-size: 12px; text-decoration: underline; }
+        .admin-toggle-btn { margin-top: 10px; background: none; border: none; color: #444; cursor: pointer; font-size: 12px; text-decoration: underline; }
         #admin-panel { display: none; width: 100%; max-width: 340px; background: #151618; padding: 25px; border-radius: 25px; border: 1px solid #333; margin-top: 15px; }
         .admin-input-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 14px; color: #888; font-weight: 600; }
-        .label-wrapper { display: flex; align-items: center; gap: 10px; }
         input { width: 90px; padding: 12px; border-radius: 10px; border: 1px solid #333; background: #000; color: #fff; text-align: center; font-weight: 700; font-size: 16px; }
-        .save-btn { width: 100%; padding: 15px; background: #ddd; border: none; color: #000; border-radius: 12px; cursor: pointer; font-weight: 800; margin-top: 10px; }
+        .save-btn { width: 100%; padding: 15px; background: var(--accent); border: none; color: #fff; border-radius: 12px; cursor: pointer; font-weight: 800; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -100,6 +88,12 @@
     <div id="top-bar">
         <span class="date-display" id="date-el">--.--.--</span>
         <span class="time-display" id="time-el">--:--:--</span>
+    </div>
+
+    <div class="version-selector">
+        <button class="version-btn" id="btn-v1" onclick="switchVersion('v1')">ver 1</button>
+        <button class="version-btn" id="btn-v2" onclick="switchVersion('v2')">ver 2</button>
+        <button class="version-btn" id="btn-v3" onclick="switchVersion('v3')">ver 3</button>
     </div>
 
     <div class="pedestrian-signal" id="signal-box">
@@ -116,45 +110,26 @@
     </div>
 
     <div id="time">--</div>
-    <div id="state">SYNC REQUIRED</div>
+    <div id="state">SYNCING...</div>
 
     <div class="sync-container">
         <div class="sync-grid">
-            <button class="sync-btn" onclick="syncSignal(0)">
-                <div class="led-dot led-red"></div><span>R1</span>
-            </button>
-            <button class="sync-btn" onclick="syncSignal(1)">
-                <div class="led-dot led-green"></div><span>G1</span>
-            </button>
-            <button class="sync-btn" onclick="syncSignal(2)">
-                <div class="led-dot led-red"></div><span>R2</span>
-            </button>
-            <button class="sync-btn" onclick="syncSignal(3)">
-                <div class="led-dot led-green"></div><span>G2</span>
-            </button>
+            <button class="sync-btn" onclick="syncSignal(0)"><div class="led-dot led-red"></div><span>R1</span></button>
+            <button class="sync-btn" onclick="syncSignal(1)"><div class="led-dot led-green"></div><span>G1</span></button>
+            <button class="sync-btn" onclick="syncSignal(2)"><div class="led-dot led-red"></div><span>R2</span></button>
+            <button class="sync-btn" onclick="syncSignal(3)"><div class="led-dot led-green"></div><span>G2</span></button>
         </div>
     </div>
 
     <button class="admin-toggle-btn" onclick="toggleAdmin()">SETTINGS</button>
 
     <div id="admin-panel">
-        <div class="admin-input-group">
-            <div class="label-wrapper"><div class="led-dot led-red"></div><span>R1 (s)</span></div>
-            <input type="number" step="0.1" id="in-r1">
-        </div>
-        <div class="admin-input-group">
-            <div class="label-wrapper"><div class="led-dot led-green"></div><span>G1 (s)</span></div>
-            <input type="number" step="0.1" id="in-g1">
-        </div>
-        <div class="admin-input-group">
-            <div class="label-wrapper"><div class="led-dot led-red"></div><span>R2 (s)</span></div>
-            <input type="number" step="0.1" id="in-r2">
-        </div>
-        <div class="admin-input-group">
-            <div class="label-wrapper"><div class="led-dot led-green"></div><span>G2 (s)</span></div>
-            <input type="number" step="0.1" id="in-g2">
-        </div>
-        <button class="save-btn" onclick="savePattern()">SAVE CHANGES</button>
+        <h3 style="margin:0 0 15px 0; font-size:14px; color:var(--accent);" id="admin-title">V1 편집 중</h3>
+        <div class="admin-input-group"><span>R1 (s)</span><input type="number" step="0.1" id="in-r1"></div>
+        <div class="admin-input-group"><span>G1 (s)</span><input type="number" step="0.1" id="in-g1"></div>
+        <div class="admin-input-group"><span>R2 (s)</span><input type="number" step="0.1" id="in-r2"></div>
+        <div class="admin-input-group"><span>G2 (s)</span><input type="number" step="0.1" id="in-g2"></div>
+        <button class="save-btn" onclick="savePattern()">이 버전 저장하기</button>
     </div>
 
 <script type="module">
@@ -174,31 +149,56 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    let PATTERN = [{state:"RED",duration:110},{state:"GREEN",duration:26.5},{state:"RED",duration:35.5},{state:"GREEN",duration:26.5}];
+    // 기본 패턴 (Firebase에 데이터가 없을 경우 대비)
+    let DEFAULT_PATTERN = [{state:"RED",duration:110},{state:"GREEN",duration:26.5},{state:"RED",duration:35.5},{state:"GREEN",duration:26.5}];
+    let currentPattern = [...DEFAULT_PATTERN];
+    let currentVer = 'v1';
     let startTime = null;
 
-    onValue(ref(db, "signal/pattern"), snap => {
+    // 현재 활성화된 버전 및 전체 데이터 감시
+    onValue(ref(db, "signal"), snap => {
         if (snap.exists()) {
-            PATTERN = snap.val();
-            document.getElementById('in-r1').value = PATTERN[0].duration;
-            document.getElementById('in-g1').value = PATTERN[1].duration;
-            document.getElementById('in-r2').value = PATTERN[2].duration;
-            document.getElementById('in-g2').value = PATTERN[3].duration;
+            const data = snap.val();
+            currentVer = data.currentVersion || 'v1';
+            startTime = data.start;
+            
+            // 패턴 데이터 로드 (없으면 기본값 사용)
+            const patterns = data.patterns || {};
+            currentPattern = patterns[currentVer] || DEFAULT_PATTERN;
+
+            // UI 업데이트
+            updateVersionUI(currentVer);
+            fillAdminInputs(currentPattern);
         }
     });
 
-    onValue(ref(db, "signal/start"), snap => startTime = snap.val());
+    window.switchVersion = (ver) => {
+        set(ref(db, "signal/currentVersion"), ver);
+    };
+
+    function updateVersionUI(ver) {
+        document.querySelectorAll('.version-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`btn-${ver}`).classList.add('active');
+        document.getElementById('admin-title').innerText = `${ver.toUpperCase()} 편집 중`;
+    }
+
+    function fillAdminInputs(pattern) {
+        document.getElementById('in-r1').value = pattern[0].duration;
+        document.getElementById('in-g1').value = pattern[1].duration;
+        document.getElementById('in-r2').value = pattern[2].duration;
+        document.getElementById('in-g2').value = pattern[3].duration;
+    }
 
     window.syncSignal = (index) => {
         let offset = 0;
-        for(let i=0; i<index; i++) offset += Number(PATTERN[i].duration);
+        for(let i=0; i<index; i++) offset += Number(currentPattern[i].duration);
         set(ref(db, "signal/start"), (Date.now()/1000) - offset);
     };
 
     window.toggleAdmin = () => {
         const panel = document.getElementById('admin-panel');
         if(panel.style.display==='block') { panel.style.display='none'; return; }
-        if(prompt("비밀번호")==="1234") panel.style.display='block';
+        if(prompt("관리자 비밀번호")==="1234") panel.style.display='block';
     };
 
     window.savePattern = () => {
@@ -208,7 +208,9 @@
             {state:"RED",duration:parseFloat(document.getElementById('in-r2').value)},
             {state:"GREEN",duration:parseFloat(document.getElementById('in-g2').value)}
         ];
-        set(ref(db,"signal/pattern"), newPattern).then(() => { alert("Saved"); document.getElementById('admin-panel').style.display='none'; });
+        set(ref(db, `signal/patterns/${currentVer}`), newPattern).then(() => { 
+            alert(`${currentVer.toUpperCase()} 저장 완료`); 
+        });
     };
 
     function update() {
@@ -216,13 +218,13 @@
         document.getElementById('date-el').innerText = `${now.getFullYear().toString().slice(-2)}.${(now.getMonth()+1).toString().padStart(2,'0')}.${now.getDate().toString().padStart(2,'0')}`;
         document.getElementById('time-el').innerText = now.toTimeString().split(' ')[0];
 
-        if (startTime) {
+        if (startTime && currentPattern) {
             const currentTime = Date.now() / 1000;
-            const TOTAL = PATTERN.reduce((sum, p) => sum + Number(p.duration), 0);
+            const TOTAL = currentPattern.reduce((sum, p) => sum + Number(p.duration), 0);
             let cycle = (currentTime - startTime) % TOTAL;
             let acc = 0;
 
-            for (let step of PATTERN) {
+            for (let step of currentPattern) {
                 if (cycle < acc + step.duration) {
                     const rem = Math.ceil(acc + step.duration - cycle);
                     const isRed = (step.state === "RED");
@@ -230,11 +232,8 @@
                     
                     signalBox.className = isRed ? "pedestrian-signal red-active" : "pedestrian-signal green-active";
                     
-                    if(!isRed && rem <= 15) {
-                        signalBox.classList.add('blinking');
-                    } else {
-                        signalBox.classList.remove('blinking');
-                    }
+                    if(!isRed && rem <= 15) signalBox.classList.add('blinking');
+                    else signalBox.classList.remove('blinking');
 
                     const sEl = document.getElementById('state');
                     const tEl = document.getElementById('time');
@@ -253,4 +252,3 @@
 </script>
 </body>
 </html>
-
