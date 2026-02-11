@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Signal Live - 보행자 신호</title>
+    <title신호등</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
@@ -15,8 +15,8 @@
             --text-main: #ececec;
         }
 
-        body {
-            background-color: var(--bg); color: var(--text-main); text-align: center;
+        body { 
+            background-color: var(--bg); color: var(--text-main); text-align: center; 
             font-family: "Pretendard", sans-serif; margin: 0; padding: 40px 20px;
             display: flex; flex-direction: column; align-items: center; min-height: 100vh;
             overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -44,15 +44,15 @@
         .walker-svg { width: 85px; height: 85px; fill: var(--off); transition: all 0.3s ease; }
 
         /* 🔴 빨간불 활성화 */
-        .red-active .walker-svg.stop {
-            fill: var(--red);
-            filter: drop-shadow(0 0 12px rgba(255, 77, 77, 0.8));
+        .red-active .walker-svg.stop { 
+            fill: var(--red); 
+            filter: drop-shadow(0 0 12px rgba(255, 77, 77, 0.8)); 
         }
 
         /* 🟢 초록불 활성화 */
-        .green-active .walker-svg.walk {
-            fill: var(--green);
-            filter: drop-shadow(0 0 12px rgba(0, 230, 118, 0.8));
+        .green-active .walker-svg.walk { 
+            fill: var(--green); 
+            filter: drop-shadow(0 0 12px rgba(0, 230, 118, 0.8)); 
         }
 
         @keyframes blink {
@@ -76,10 +76,10 @@
         /* 제어 버튼 영역 */
         .sync-container { width: 100%; max-width: 340px; background: #151618; padding: 20px; border-radius: 25px; border: 1px solid #2a2a2a; }
         .sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-        .sync-btn {
-            padding: 18px 10px; border: 1px solid #2a2a2a; border-radius: 16px;
-            background: #1e1f22; color: #bbb; font-size: 14px; font-weight: 700;
+        
+        .sync-btn { 
+            padding: 18px 10px; border: 1px solid #2a2a2a; border-radius: 16px; 
+            background: #1e1f22; color: #bbb; font-size: 14px; font-weight: 700; 
             cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
             transition: 0.2s;
         }
@@ -105,13 +105,13 @@
     <div class="pedestrian-signal" id="signal-box">
         <div class="lamp-section" id="red-section">
             <svg class="walker-svg stop" viewBox="0 0 24 24">
-                <path d="M14,6c0-1.1-0.9-2-2-2S10,4.9,10,6s0.9,2,2,2S14,7.1,14,6z M14,15v7h-1v-5l-1.5,1.5V22H10v-5.5l-2,2V22H7v-4.2 l2.5-2.5L9,10H8v5H6V9h2l2.5,2.5L13,9h3v3.5l-2,2L14,15z M16,15v-3h2v3H16z"/>
+                <path d="M12,2c1.1,0,2,0.9,2,2s-0.9,2-2,2s-2-0.9-2-2S10.9,2,12,2z M15,7H9C8.4,7,8,7.4,8,8v6c0,0.6,0.4,1,1,1h1v7h4v-7h1 c0.6,0,1-0.4,1-1V8C16,7.4,15.6,7,15,7z"/>
             </svg>
         </div>
         
         <div class="lamp-section" id="green-section">
             <svg class="walker-svg walk" viewBox="0 0 24 24">
-                 <path d="M14.8,8L13,4.2C12.6,3.4,11.8,3,11,3c-0.9,0-1.7,0.4-2.1,1.2L7,8.4v5.1l1.5,1.5V10l1.5-3l1.5,3v6l-3,3H6v3h3l4.5-4.5 L15,18v3h3v-4.5l-2-2v-3l-2.5-5L15,10h3V8H14.8z M12,1c-1.1,0-2,0.9-2,2s0.9,2,2,2s2-0.9,2-2S13.1,1,12,1z"/>
+                <path d="M13.5,5.5c1.1,0,2-0.9,2-2s-0.9-2-2-2s-2,0.9-2,2S12.4,5.5,13.5,5.5z M9.8,8.9L7,23h2.1l1.8-8l2.1,2v6h2v-7.5l-2.1-2 l0.6-3C14.8,12,16.8,13,19,13v-2c-1.9,0-3.5-1-4.3-2.4l-1-1.6c-0.4-0.6-1-1-1.7-1c-0.3,0-0.5,0.1-0.8,0.2L8,8.3V13h2V9.6L9.8,8.9z"/>
             </svg>
         </div>
     </div>
@@ -239,7 +239,7 @@
 
                     const sEl = document.getElementById('state');
                     const tEl = document.getElementById('time');
-                    sEl.innerText = isRed ? "STOP · 빨간불" : "GO · 초록불";
+                    sEl.innerText = isRed ? "STOP  ·  빨간불" : "GO  ·  초록불";
                     sEl.style.color = isRed ? "var(--red)" : "var(--green)";
                     tEl.innerText = rem;
                     tEl.style.color = isRed ? "var(--red)" : "var(--green)";
