@@ -1,114 +1,194 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-<meta charset="UTF-8">
-<title>우리집 신호등</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-body { text-align:center; font-family:Arial; margin-top:30px; }
-.clock { font-size:22px; margin-bottom:20px; }
-.state { font-size:40px; margin-top:30px; }
-.count { font-size:70px; }
-button { font-size:20px; padding:10px 20px; margin:10px; }
-</style>
-</head>
-
-<body>
-
-<div class="clock" id="clock"></div>
-<div class="state" id="state"></div>
-<div class="count" id="time"></div>
-
-<button onclick="setStart()">🚦 지금 신호 시작</button>
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyAxwM-IBryLUHgCkOCFphd2GVhqILAINAk",
-  authDomain: "signal-902a9.firebaseapp.com",
-  databaseURL: "https://signal-902a9-default-rtdb.firebaseio.com",
-  projectId: "signal-902a9",
-  storageBucket: "signal-902a9.firebasestorage.app",
-  messagingSenderId: "1040774154277",
-  appId: "1:1040774154277:web:21c0ca2b2b2e9f6dca17cc"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-const PATTERN = [
-    { state: "RED", duration: 60 },
-    { state: "GREEN", duration: 30 },
-    { state: "RED", duration: 20 },
-    { state: "GREEN", duration: 30 }
-];
-
-const TOTAL = PATTERN.reduce((sum, p) => sum + p.duration, 0);
-
-let startTime = null;
-
-function updateClock() {
-    const now = new Date();
-    const seoulTime = now.toLocaleString("ko-KR", {
-        timeZone: "Asia/Seoul",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false
-    });
-
-    document.getElementById("clock").innerText =
-        "🇰🇷 현재 시각 (서울): " + seoulTime;
-}
-
-window.setStart = function() {
-    set(ref(db, "signal/start"), Math.floor(Date.now() / 1000));
-};
-
-onValue(ref(db, "signal/start"), snapshot => {
-    startTime = snapshot.val();
-});
-
-function updateSignal() {
-
-    if (!startTime) return;
-
-    const now = Math.floor(Date.now() / 1000);
-    let cycle = (now - startTime) % TOTAL;
-
-    let accumulated = 0;
-
-    for (let step of PATTERN) {
-
-        if (cycle < accumulated + step.duration) {
-
-            const remaining = accumulated + step.duration - cycle;
-
-            document.getElementById("state").innerText =
-                step.state === "GREEN" ? "🟢 초록불" : "🔴 빨간불";
-
-            document.getElementById("time").innerText =
-                remaining + "초";
-
-            break;
+    <meta charset="UTF-8">
+    <title>우리집 신호등 - 프리미엄</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --box-color: #333;
+            --off-color: #444;
+            --red-color: #ff3b3b;
+            --green-color: #00ff90;
         }
 
-        accumulated += step.duration;
+        body { 
+            background-color: var(--bg-color); 
+            color: white; 
+            text-align: center; 
+            font-family: 'Apple SD Gothic Neo', sans-serif; 
+            margin: 0;
+            padding-top: 50px;
+        }
+
+        /* 시계 스타일 */
+        #clock { font-size: 18px; color: #aaa; margin-bottom: 30px; }
+
+        /* 신호등 본체 */
+        .traffic-light {
+            width: 160px;
+            background: #222;
+            padding: 25px;
+            border-radius: 40px;
+            margin: 0 auto;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 0 15px rgba(255,255,255,0.05);
+            border: 4px solid #444;
+        }
+
+        /* 램프 공통 스타일 */
+        .light {
+            width: 100px;
+            height: 100px;
+            background-color: var(--off-color);
+            border-radius: 50%;
+            margin: 20px auto;
+            transition: all 0.4s ease;
+            box-shadow: inset 0 5px 15px rgba(0,0,0,0.6);
+        }
+
+        /* 불빛 활성화 상태 */
+        .light.red.active {
+            background-color: var(--red-color);
+            box-shadow: 0 0 40px var(--red-color), inset 0 0 15px rgba(255,255,255,0.4);
+        }
+
+        .light.green.active {
+            background-color: var(--green-color);
+            box-shadow: 0 0 40px var(--green-color), inset 0 0 15px rgba(255,255,255,0.4);
+        }
+
+        /* 타이머 숫자 스타일 */
+        #time {
+            font-size: 85px;
+            font-weight: 800;
+            margin-top: 30px;
+            font-family: 'Courier New', Courier, monospace; /* 숫자 가독성 */
+            transition: color 0.3s;
+        }
+
+        #state { font-size: 24px; font-weight: bold; margin-top: 10px; }
+
+        /* 버튼 스타일 */
+        .btn-container { margin-top: 50px; }
+        button {
+            background: #444;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        button:hover { background: #555; transform: scale(1.05); }
+        button:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+    <div id="clock">시계 동기화 중...</div>
+
+    <div class="traffic-light">
+        <div id="redLight" class="light red"></div>
+        <div id="greenLight" class="light green"></div>
+    </div>
+
+    <div id="state">신호 대기 중</div>
+    <div id="time">--</div>
+
+    <div class="btn-container">
+        <button id="startBtn">🚦 지금 신호 시작</button>
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAxwM-IBryLUHgCkOCFphd2GVhqILAINAk",
+        authDomain: "signal-902a9.firebaseapp.com",
+        databaseURL: "https://signal-902a9-default-rtdb.firebaseio.com",
+        projectId: "signal-902a9",
+        storageBucket: "signal-902a9.firebasestorage.app",
+        messagingSenderId: "1040774154277",
+        appId: "1:1040774154277:web:21c0ca2b2b2e9f6dca17cc"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const PATTERN = [
+        { state: "RED", duration: 60 },
+        { state: "GREEN", duration: 30 },
+        { state: "RED", duration: 20 },
+        { state: "GREEN", duration: 30 }
+    ];
+
+    const TOTAL = PATTERN.reduce((sum, p) => sum + p.duration, 0);
+    let startTime = null;
+
+    // 요소 가져오기
+    const redLight = document.getElementById("redLight");
+    const greenLight = document.getElementById("greenLight");
+    const stateText = document.getElementById("state");
+    const timeText = document.getElementById("time");
+    const clockText = document.getElementById("clock");
+    const startBtn = document.getElementById("startBtn");
+
+    function updateClock() {
+        const now = new Date();
+        clockText.innerText = "🇰🇷 현재 시각: " + now.toLocaleTimeString("ko-KR", {timeZone: "Asia/Seoul", hour12: false});
     }
-}
 
-function updateAll() {
-    updateClock();
-    updateSignal();
-}
+    // 버튼 클릭 이벤트 리스너 (onclick 대신 이 방식이 module에서 안전합니다)
+    startBtn.addEventListener("click", () => {
+        set(ref(db, "signal/start"), Math.floor(Date.now() / 1000));
+    });
 
-setInterval(updateAll, 1000);
+    onValue(ref(db, "signal/start"), snapshot => {
+        startTime = snapshot.val();
+    });
+
+    function updateSignal() {
+        if (!startTime) return;
+
+        const now = Math.floor(Date.now() / 1000);
+        let cycle = (now - startTime) % TOTAL;
+        let accumulated = 0;
+
+        for (let step of PATTERN) {
+            if (cycle < accumulated + step.duration) {
+                const remaining = accumulated + step.duration - cycle;
+                
+                // 불빛 초기화
+                redLight.classList.remove("active");
+                greenLight.classList.remove("active");
+
+                if (step.state === "GREEN") {
+                    greenLight.classList.add("active");
+                    stateText.innerText = "🟢 초록불";
+                    stateText.style.color = "#00ff90";
+                    timeText.style.color = "#00ff90";
+                } else {
+                    redLight.classList.add("active");
+                    stateText.innerText = "🔴 빨간불";
+                    stateText.style.color = "#ff3b3b";
+                    timeText.style.color = "#ff3b3b";
+                }
+
+                timeText.innerText = remaining;
+                break;
+            }
+            accumulated += step.duration;
+        }
+    }
+
+    setInterval(() => {
+        updateClock();
+        updateSignal();
+    }, 1000);
 
 </script>
-
 </body>
 </html>
