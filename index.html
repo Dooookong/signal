@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Signal Live - 정밀 신호 동기화</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
         :root {
@@ -21,20 +21,22 @@
             color: var(--text-main); 
             text-align: center; 
             font-family: "Pretendard", -apple-system, sans-serif; 
-            margin: 0; padding: 0 20px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100vh; overflow: hidden; /* 스크롤 방지 및 한 화면 고정 */
+            margin: 0; padding: 40px 20px;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh;
+            overflow-y: auto; /* 스크롤 활성화 */
+            -webkit-overflow-scrolling: touch;
         }
 
-        /* 상단 날짜/시계 (요청하신 포맷으로 수정) */
+        /* 상단 날짜/시계 (날짜 밑에 시간 배치) */
         #top-bar { 
-            font-size: 15px; font-weight: 500; color: var(--text-dim); 
-            margin-bottom: 20px; 
-            letter-spacing: 1px; font-variant-numeric: tabular-nums;
-            border-bottom: 1px solid #222; padding-bottom: 8px; width: 180px;
+            margin-bottom: 30px; 
+            border-bottom: 1px solid #222; padding-bottom: 15px; width: 200px;
         }
+        .date-display { font-size: 15px; font-weight: 500; color: var(--text-dim); display: block; letter-spacing: 1px; }
+        .time-display { font-size: 24px; font-weight: 700; color: var(--text-main); display: block; margin-top: 5px; font-variant-numeric: tabular-nums; }
 
-        /* 신호등 본체 (크기 최적화) */
+        /* 신호등 본체 */
         .traffic-light {
             width: 100px; background: #111; padding: 15px 8px; border-radius: 45px;
             margin: 0 auto; box-shadow: 0 20px 40px rgba(0,0,0,0.8);
@@ -45,43 +47,44 @@
         .light.red.active { background-color: var(--red); box-shadow: 0 0 40px rgba(255, 59, 59, 0.4); }
         .light.green.active { background-color: var(--green); box-shadow: 0 0 40px rgba(0, 255, 144, 0.4); }
 
-        #time { font-size: 70px; font-weight: 800; margin: 10px 0 0 0; font-variant-numeric: tabular-nums; letter-spacing: -2px; }
-        #state { font-size: 18px; margin-bottom: 25px; font-weight: 700; letter-spacing: -1px; }
+        #time { font-size: 75px; font-weight: 800; margin: 15px 0 0 0; font-variant-numeric: tabular-nums; letter-spacing: -2px; }
+        #state { font-size: 18px; margin-bottom: 35px; font-weight: 700; letter-spacing: -1px; }
 
-        /* 제어 컨테이너 (여백 줄임) */
+        /* 제어 컨테이너 (그리드 및 버튼 선 제거) */
         .sync-container { width: 100%; max-width: 320px; background: var(--card); padding: 15px; border-radius: 25px; border: 1px solid #25272a; }
         .sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         
         .sync-btn { 
-            padding: 15px 5px; border: 1px solid #2a2c30; border-radius: 15px; 
-            background: var(--inner-card); color: #fff; font-size: 13px; font-weight: 700; 
-            cursor: pointer; position: relative;
+            padding: 18px 5px; border: 1px solid #2a2c30; border-radius: 15px; 
+            background: var(--inner-card); color: #fff; font-size: 14px; font-weight: 700; 
+            cursor: pointer; transition: 0.2s;
         }
-        .sync-btn::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px; opacity: 0.6; border-radius: 0 0 15px 15px; }
-        .sync-btn.red-btn::after { background: var(--red); }
-        .sync-btn.green-btn::after { background: var(--green); }
+        /* 하단 빨간색/초록색 선 제거됨 */
         .sync-btn:active { transform: scale(0.96); background: #111; }
 
-        /* 관리자 패널 (압축 디자인) */
+        /* 관리자 패널 */
         #admin-panel { 
             display: none; width: 100%; max-width: 320px; background: var(--card); 
-            padding: 15px; border-radius: 20px; border: 1px solid #333; 
-            margin-top: 10px; box-sizing: border-box;
+            padding: 20px; border-radius: 25px; border: 1px solid #333; 
+            margin-top: 15px; box-sizing: border-box;
         }
-        .admin-input-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .admin-input-group span { font-size: 12px; font-weight: 600; color: #888; }
+        .admin-input-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .admin-input-group span { font-size: 13px; font-weight: 600; color: #888; }
         input { 
-            width: 80px; padding: 8px; border-radius: 8px; border: 1px solid #333; 
-            background: #000; color: #fff; text-align: center; font-size: 14px; font-weight: 700;
+            width: 85px; padding: 10px; border-radius: 10px; border: 1px solid #333; 
+            background: #000; color: #fff; text-align: center; font-size: 15px; font-weight: 700;
         }
 
-        .admin-toggle-btn { margin-top: 15px; background: none; border: none; color: #444; cursor: pointer; font-size: 12px; text-decoration: underline; }
-        .save-btn { width: 100%; padding: 12px; background: #fff; border: none; color: #000; border-radius: 12px; cursor: pointer; font-weight: 800; font-size: 13px; }
+        .admin-toggle-btn { margin-top: 25px; background: none; border: none; color: #444; cursor: pointer; font-size: 12px; text-decoration: underline; }
+        .save-btn { width: 100%; padding: 15px; background: #fff; border: none; color: #000; border-radius: 15px; cursor: pointer; font-weight: 800; font-size: 14px; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-    <div id="top-bar">LOADING...</div>
+    <div id="top-bar">
+        <span class="date-display" id="date-el">--.--.--</span>
+        <span class="time-display" id="time-el">--:--:--</span>
+    </div>
 
     <div class="traffic-light">
         <div id="redLight" class="light red"></div>
@@ -93,10 +96,10 @@
 
     <div class="sync-container">
         <div class="sync-grid">
-            <button class="sync-btn red-btn" onclick="syncSignal(0)">🔴 R1</button>
-            <button class="sync-btn green-btn" onclick="syncSignal(1)">🟢 G1</button>
-            <button class="sync-btn red-btn" onclick="syncSignal(2)">🔴 R2</button>
-            <button class="sync-btn green-btn" onclick="syncSignal(3)">🟢 G2</button>
+            <button class="sync-btn" onclick="syncSignal(0)">🔴 R1</button>
+            <button class="sync-btn" onclick="syncSignal(1)">🟢 G1</button>
+            <button class="sync-btn" onclick="syncSignal(2)">🔴 R2</button>
+            <button class="sync-btn" onclick="syncSignal(3)">🟢 G2</button>
         </div>
     </div>
 
@@ -167,20 +170,20 @@
             { state: "GREEN", duration: parseFloat(document.getElementById('in-g2').value) }
         ];
         set(ref(db, "signal/pattern"), newPattern).then(() => {
-            alert("Updated.");
+            alert("Settings saved.");
             toggleAdmin();
         });
     };
 
     function update() {
         const now = new Date();
-        // 날짜 및 시간 포맷 수정 (26.02.11 20:45:33)
         const year = now.getFullYear().toString().slice(-2);
         const month = (now.getMonth() + 1).toString().padStart(2, '0');
         const date = now.getDate().toString().padStart(2, '0');
-        const timeStr = now.toTimeString().split(' ')[0]; // HH:MM:SS 포맷 추출
+        const hms = now.toTimeString().split(' ')[0];
 
-        document.getElementById('top-bar').innerText = `${year}.${month}.${date} ${timeStr}`;
+        document.getElementById('date-el').innerText = `${year}.${month}.${date}`;
+        document.getElementById('time-el').innerText = hms;
 
         if (startTime) {
             const currentTime = Date.now() / 1000;
