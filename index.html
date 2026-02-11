@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>신호등 멀티 패턴 제어</title>
+    <title>신호등</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
@@ -13,7 +13,7 @@
             --green: #00e676;
             --off: #2c2c2c;
             --text-main: #ececec;
-            --accent: #3a86ff;
+            --accent: #ffffff;
         }
 
         body { 
@@ -29,11 +29,18 @@
 
         /* 버전 선택 탭 */
         .version-selector { display: flex; gap: 8px; margin-bottom: 15px; width: 100%; max-width: 340px; }
+        .version-btn.active { 
+            background: #ffffff; /* 순백색 배경 */
+            color: #000000;    /* 검정색 글자 */
+            border-color: #ffffff; 
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3); /* 은은한 광택 효과 */
+        }
         .version-btn { 
             flex: 1; padding: 10px; border-radius: 12px; border: 1px solid #333; 
-            background: #1a1a1a; color: #666; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.2s;
+            background: #ffffff; color: #000000; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.2s;
         }
         .version-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        
 
         /* 신호등 본체 */
         .pedestrian-signal {
@@ -252,3 +259,4 @@
 </script>
 </body>
 </html>
+
