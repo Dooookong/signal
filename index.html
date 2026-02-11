@@ -126,10 +126,10 @@
 
     // ★★★ [시간 수정 포인트] 측정해오신 시간을 여기서 수정하세요! ★★★
     const PATTERN = [
-        { state: "RED", duration: 60 },   // 첫 번째 빨간불 시간(초)
-        { state: "GREEN", duration: 30 }, // 첫 번째 초록불 시간(초)
-        { state: "RED", duration: 20 },   // 두 번째 빨간불 시간(초)
-        { state: "GREEN", duration: 30 }  // 두 번째 초록불 시간(초)
+        { state: "RED", duration: 110 },   // 첫 번째 빨간불 시간(초)
+        { state: "GREEN", duration: 26.5 }, // 첫 번째 초록불 시간(초)
+        { state: "RED", duration: 35.5 },   // 두 번째 빨간불 시간(초)
+        { state: "GREEN", duration: 26.5}  // 두 번째 초록불 시간(초)
     ];
 
     const TOTAL = PATTERN.reduce((sum, p) => sum + p.duration, 0);
@@ -197,3 +197,4 @@
 </script>
 </body>
 </html>
+
