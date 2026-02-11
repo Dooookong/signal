@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>신호등</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚦</text></svg>">
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
@@ -24,11 +26,11 @@
             margin: 0; padding: 40px 20px;
             display: flex; flex-direction: column; align-items: center;
             min-height: 100vh;
-            overflow-y: auto; /* 스크롤 활성화 */
+            overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
 
-        /* 상단 날짜/시계 (날짜 밑에 시간 배치) */
+        /* 상단 날짜/시계 */
         #top-bar { 
             margin-bottom: 30px; 
             border-bottom: 1px solid #222; padding-bottom: 15px; width: 200px;
@@ -50,7 +52,7 @@
         #time { font-size: 75px; font-weight: 800; margin: 15px 0 0 0; font-variant-numeric: tabular-nums; letter-spacing: -2px; }
         #state { font-size: 18px; margin-bottom: 35px; font-weight: 700; letter-spacing: -1px; }
 
-        /* 제어 컨테이너 (그리드 및 버튼 선 제거) */
+        /* 제어 컨테이너 */
         .sync-container { width: 100%; max-width: 320px; background: var(--card); padding: 15px; border-radius: 25px; border: 1px solid #25272a; }
         .sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         
@@ -59,7 +61,6 @@
             background: var(--inner-card); color: #fff; font-size: 14px; font-weight: 700; 
             cursor: pointer; transition: 0.2s;
         }
-        /* 하단 빨간색/초록색 선 제거됨 */
         .sync-btn:active { transform: scale(0.96); background: #111; }
 
         /* 관리자 패널 */
@@ -157,9 +158,23 @@
         set(ref(db, "signal/start"), (Date.now() / 1000) - offset);
     };
 
+    // [수정된 부분] 비밀번호 입력 로직 추가
     window.toggleAdmin = () => {
         const panel = document.getElementById('admin-panel');
-        panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+        
+        // 이미 열려있는 경우 바로 닫기
+        if (panel.style.display === 'block') {
+            panel.style.display = 'none';
+            return;
+        }
+
+        // 닫혀있는 경우 비밀번호 확인
+        const pw = prompt("비밀번호를 입력하세요");
+        if (pw === "1234") {
+            panel.style.display = 'block';
+        } else if (pw !== null) {
+            alert("비밀번호가 틀렸습니다.");
+        }
     };
 
     window.savePattern = () => {
@@ -171,7 +186,7 @@
         ];
         set(ref(db, "signal/pattern"), newPattern).then(() => {
             alert("Settings saved.");
-            toggleAdmin();
+            document.getElementById('admin-panel').style.display = 'none';
         });
     };
 
@@ -217,4 +232,3 @@
 </script>
 </body>
 </html>
-
