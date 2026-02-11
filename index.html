@@ -2,11 +2,8 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>신호등</title>
+<title>우리집 신호등</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js"></script>
 
 <style>
 body { text-align:center; font-family:Arial; margin-top:30px; }
@@ -23,33 +20,25 @@ button { font-size:20px; padding:10px 20px; margin:10px; }
 <div class="state" id="state"></div>
 <div class="count" id="time"></div>
 
-<button onclick="setGreen()">🟢 초록 시작</button>
-<button onclick="setRed()">🔴 빨강 시작</button>
+<button onclick="setStart()">🚦 지금 신호 시작</button>
 
-<script>
+<script type="module">
 
-// ⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐
-    const firebaseConfig = {
-  apiKey: "AIzaSyAxwM-IBryLUHgCkOCFphd2GVhqILAINAk",
-  authDomain: "signal-902a9.firebaseapp.com",
-  projectId: "signal-902a9",
-  storageBucket: "signal-902a9.firebasestorage.app",
-  messagingSenderId: "1040774154277",
-  appId: "1:1040774154277:web:21c0ca2b2b2e9f6dca17cc"
-};
-// ⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAxwM-IBryLUHgCkOCFphd2GVhqILAINAk",
   authDomain: "signal-902a9.firebaseapp.com",
+  databaseURL: "https://signal-902a9-default-rtdb.firebaseio.com",
   projectId: "signal-902a9",
   storageBucket: "signal-902a9.firebasestorage.app",
   messagingSenderId: "1040774154277",
   appId: "1:1040774154277:web:21c0ca2b2b2e9f6dca17cc"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
 const PATTERN = [
     { state: "RED", duration: 60 },
@@ -59,6 +48,8 @@ const PATTERN = [
 ];
 
 const TOTAL = PATTERN.reduce((sum, p) => sum + p.duration, 0);
+
+let startTime = null;
 
 function updateClock() {
     const now = new Date();
@@ -74,24 +65,20 @@ function updateClock() {
         "🇰🇷 현재 시각 (서울): " + seoulTime;
 }
 
-function setGreen() {
-    db.ref("signal/start").set(Math.floor(Date.now() / 1000));
-}
+window.setStart = function() {
+    set(ref(db, "signal/start"), Math.floor(Date.now() / 1000));
+};
 
-function setRed() {
-    db.ref("signal/start").set(Math.floor(Date.now() / 1000));
-}
-
-db.ref("signal/start").on("value", snapshot => {
-    window.startTime = snapshot.val();
+onValue(ref(db, "signal/start"), snapshot => {
+    startTime = snapshot.val();
 });
 
 function updateSignal() {
 
-    if (!window.startTime) return;
+    if (!startTime) return;
 
     const now = Math.floor(Date.now() / 1000);
-    let cycle = (now - window.startTime) % TOTAL;
+    let cycle = (now - startTime) % TOTAL;
 
     let accumulated = 0;
 
@@ -101,13 +88,12 @@ function updateSignal() {
 
             const remaining = accumulated + step.duration - cycle;
 
-            if (step.state === "GREEN") {
-                document.getElementById("state").innerText = "🟢 초록불";
-            } else {
-                document.getElementById("state").innerText = "🔴 빨간불";
-            }
+            document.getElementById("state").innerText =
+                step.state === "GREEN" ? "🟢 초록불" : "🔴 빨간불";
 
-            document.getElementById("time").innerText = remaining + "초";
+            document.getElementById("time").innerText =
+                remaining + "초";
+
             break;
         }
 
