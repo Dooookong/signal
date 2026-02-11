@@ -158,7 +158,7 @@ let pattern = [
 /* 🔥 관리자 수정 적용 문제 해결 */
 onValue(patternRef, snap => {
   if (snap.exists()) {
-    pattern = Object.values(snap.val());   // 👈 핵심 수정
+    pattern = snap.val());   // 👈 핵심 수정
   }
 });
 
@@ -243,3 +243,4 @@ updateClock();
 
 </body>
 </html>
+
