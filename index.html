@@ -2,58 +2,146 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Signal Map - 실시간 신호등 지도</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>실시간 신호등 동기화</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-    
-    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=33ea8f4ecaedf7e2a2ef457211594d5"></script>
-    
     <style>
-        :root { --bg: #0f1113; --red: #ff3b3b; --green: #00ff90; --card: #1c1e21; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); color: white; font-family: "Pretendard", sans-serif; overflow: hidden; }
-        #map { width: 100%; height: 100%; z-index: 1; }
-
-        /* 하단 상세 정보 시트 */
-        #detailSheet {
-            position: fixed; bottom: -100%; left: 0; right: 0;
-            background: var(--card); z-index: 100;
-            border-radius: 30px 30px 0 0; padding: 30px 20px;
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
-            transition: bottom 0.4s ease-out; text-align: center;
+        :root {
+            --bg-color: #0f1113;
+            --card-bg: #1a1c1e;
+            --red-main: #ff3b3b;
+            --green-main: #00ff90;
+            --off-light: #2a2d30;
+            --btn-hover: #2c2f33;
         }
-        #detailSheet.active { bottom: 0; }
-        #timer { font-size: 70px; font-weight: 800; margin: 10px 0; }
+
+        body { 
+            background-color: var(--bg-color); 
+            color: #ffffff; 
+            text-align: center; 
+            font-family: "Pretendard", sans-serif; 
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        #clock { font-size: 14px; color: #666; margin-bottom: 20px; letter-spacing: 1px; }
+
+        /* 신호등 본체 디자인 */
+        .traffic-light {
+            width: 130px;
+            background: #16181a;
+            padding: 25px 15px;
+            border-radius: 50px;
+            margin: 0 auto;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.6), inset 0 0 10px rgba(255,255,255,0.02);
+            border: 1px solid #2a2d30;
+        }
+
+        .light {
+            width: 85px;
+            height: 85px;
+            background-color: var(--off-light);
+            border-radius: 50%;
+            margin: 15px auto;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: inset 0 5px 10px rgba(0,0,0,0.5);
+        }
+
+        .light.red.active { background-color: var(--red-main); box-shadow: 0 0 50px rgba(255, 59, 59, 0.6), inset 0 0 15px rgba(255,255,255,0.2); }
+        .light.green.active { background-color: var(--green-main); box-shadow: 0 0 50px rgba(0, 255, 144, 0.6), inset 0 0 15px rgba(255,255,255,0.2); }
+
+        #time { font-size: 90px; font-weight: 800; margin: 15px 0; font-variant-numeric: tabular-nums; transition: color 0.3s; }
+        #state { font-size: 18px; margin-bottom: 40px; font-weight: 600; letter-spacing: -0.5px; }
+
+        /* 하단 제어 패널 디자인 (세련된 카드 레이아웃) */
+        .sync-container {
+            max-width: 360px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 25px 20px;
+            border-radius: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            border: 1px solid #2a2d30;
+        }
+
+        .panel-label { 
+            font-size: 13px; 
+            color: #888; 
+            margin-bottom: 20px; 
+            display: block;
+            font-weight: 500;
+        }
+
+        .sync-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .sync-btn {
+            padding: 20px 10px;
+            border: 1px solid #333;
+            border-radius: 18px;
+            background: #232629;
+            color: #efefef;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        /* 각 버튼별 강조 색상 포인트 */
+        .sync-btn.red-btn { border-bottom: 4px solid var(--red-main); }
+        .sync-btn.green-btn { border-bottom: 4px solid var(--green-main); }
+
+        /* 호버 및 액션 효과 */
+        .sync-btn:hover { background: var(--btn-hover); border-color: #444; transform: translateY(-2px); }
+        .sync-btn:active { transform: scale(0.95); background: #111; }
         
-        .lamp-box { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
-        .lamp { width: 15px; height: 15px; border-radius: 50%; background: #333; }
-        .lamp.red.on { background: var(--red); box-shadow: 0 0 15px var(--red); }
-        .lamp.green.on { background: var(--green); box-shadow: 0 0 15px var(--green); }
-
-        .sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .sync-btn { 
-            background: #2a2d2f; border: 1px solid #3a3d40; padding: 18px; 
-            color: #efefef; border-radius: 16px; font-size: 14px; font-weight: 700; cursor: pointer;
-        }
+        .btn-tag { font-size: 10px; opacity: 0.5; font-weight: 400; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
-    <div id="map"></div>
+    <div id="clock">SEOUL 00:00:00</div>
 
-    <div id="detailSheet">
-        <div style="color:#888; font-size:14px;">서울 시청 교차로</div>
-        <div id="timer">--</div>
-        <div class="lamp-box">
-            <div id="l-red" class="lamp red"></div>
-            <div id="l-green" class="lamp green"></div>
-        </div>
+    <div class="traffic-light">
+        <div id="redLight" class="light red"></div>
+        <div id="greenLight" class="light green"></div>
+    </div>
+
+    <div id="time">--</div>
+    <div id="state">신호 동기화 대기 중</div>
+
+    <div class="sync-container">
+        <span class="panel-label">실제 신호가 바뀌는 순간에 누르세요</span>
         <div class="sync-grid">
-            <button class="sync-btn" onclick="sync(0)">🔴 R1 시작</button>
-            <button class="sync-btn" onclick="sync(1)">🟢 G1 시작</button>
-            <button class="sync-btn" onclick="sync(2)">🔴 R2 시작</button>
-            <button class="sync-btn" onclick="sync(3)">🟢 G2 시작</button>
+            <button class="sync-btn red-btn" data-index="0">
+                <span>🔴 RED 1</span>
+                <span class="btn-tag">Sync Start</span>
+            </button>
+            <button class="sync-btn green-btn" data-index="1">
+                <span>🟢 GREEN 1</span>
+                <span class="btn-tag">Sync Start</span>
+            </button>
+            <button class="sync-btn red-btn" data-index="2">
+                <span>🔴 RED 2</span>
+                <span class="btn-tag">Sync Start</span>
+            </button>
+            <button class="sync-btn green-btn" data-index="3">
+                <span>🟢 GREEN 2</span>
+                <span class="btn-tag">Sync Start</span>
+            </button>
         </div>
-        <button onclick="document.getElementById('detailSheet').classList.remove('active')" style="margin-top:20px; background:none; border:none; color:#555;">닫기</button>
     </div>
 
 <script type="module">
@@ -73,49 +161,67 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    const PATTERN = [110, 26.5, 35.5, 26.5];
-    const TOTAL = PATTERN.reduce((a, b) => a + b, 0);
+    const PATTERN = [
+        { state: "RED", duration: 110 },
+        { state: "GREEN", duration: 26.5 },
+        { state: "RED", duration: 35.5 },
+        { state: "GREEN", duration: 26.5 }
+    ];
+
+    const TOTAL = PATTERN.reduce((sum, p) => sum + p.duration, 0);
     let startTime = null;
 
-    // 카카오 지도 초기화
-    const map = new kakao.maps.Map(document.getElementById('map'), {
-        center: new kakao.maps.LatLng(37.5668, 126.9786),
-        level: 3
+    const redLight = document.getElementById("redLight");
+    const greenLight = document.getElementById("greenLight");
+    const stateText = document.getElementById("state");
+    const timeText = document.getElementById("time");
+    const clockText = document.getElementById("clock");
+
+    document.querySelectorAll('.sync-btn').forEach(btn => {
+        btn.onclick = () => {
+            const index = parseInt(btn.getAttribute('data-index'));
+            let offset = 0;
+            for(let i=0; i < index; i++) {
+                offset += PATTERN[i].duration;
+            }
+            const newStartTime = (Date.now() / 1000) - offset;
+            set(ref(db, "signal/start"), newStartTime);
+        };
     });
 
-    const marker = new kakao.maps.Marker({ position: map.getCenter(), map: map });
-    kakao.maps.event.addListener(marker, 'click', () => {
-        document.getElementById('detailSheet').classList.add('active');
-    });
-
-    // 동기화 함수 (전역 window 객체에 등록하여 에러 방지)
-    window.sync = (index) => {
-        let offset = 0;
-        for(let i=0; i<index; i++) offset += PATTERN[i];
-        set(ref(db, "signal/start"), (Date.now() / 1000) - offset);
-    };
-
-    onValue(ref(db, "signal/start"), snap => {
-        startTime = snap.val();
+    onValue(ref(db, "signal/start"), snapshot => {
+        startTime = snapshot.val();
     });
 
     function update() {
-        if(startTime) {
-            const now = Date.now() / 1000;
-            let cycle = (now - startTime) % TOTAL;
-            let acc = 0;
-            for(let i=0; i<PATTERN.length; i++) {
-                if(cycle < acc + PATTERN[i]) {
-                    const rem = Math.ceil(acc + PATTERN[i] - cycle);
-                    const isRed = (i === 0 || i === 2);
-                    document.getElementById('l-red').classList.toggle('on', isRed);
-                    document.getElementById('l-green').classList.toggle('on', !isRed);
-                    const t = document.getElementById('timer');
-                    t.innerText = rem;
-                    t.style.color = isRed ? "var(--red)" : "var(--green)";
+        const now = new Date();
+        clockText.innerText = "SEOUL " + now.toLocaleTimeString("ko-KR", {hour12: false});
+
+        if (startTime) {
+            const currentTime = Date.now() / 1000;
+            let cycle = (currentTime - startTime) % TOTAL;
+            let accumulated = 0;
+
+            for (let step of PATTERN) {
+                if (cycle < accumulated + step.duration) {
+                    const remaining = Math.ceil(accumulated + step.duration - cycle);
+                    
+                    redLight.classList.toggle("active", step.state === "RED");
+                    greenLight.classList.toggle("active", step.state === "GREEN");
+
+                    if (step.state === "GREEN") {
+                        stateText.innerText = "GO · 초록불";
+                        stateText.style.color = "var(--green-main)";
+                        timeText.style.color = "var(--green-main)";
+                    } else {
+                        stateText.innerText = "STOP · 빨간불";
+                        stateText.style.color = "var(--red-main)";
+                        timeText.style.color = "var(--red-main)";
+                    }
+                    timeText.innerText = remaining;
                     break;
                 }
-                acc += PATTERN[i];
+                accumulated += step.duration;
             }
         }
         requestAnimationFrame(update);
