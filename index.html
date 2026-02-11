@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>신호등</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚦</text></svg>">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
         :root {
@@ -12,58 +11,70 @@
             --signal-body: #1a1a1a;
             --red: #ff3b3b;
             --green: #00ff90;
-            --off: #252525;
+            --off: #333; /* 꺼진 상태 색상 */
         }
 
         body { 
             background-color: var(--bg); color: #ececec; text-align: center; 
             font-family: "Pretendard", sans-serif; margin: 0; padding: 40px 20px;
             display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+            overflow-y: auto; -webkit-overflow-scrolling: touch;
         }
 
         #top-bar { margin-bottom: 30px; border-bottom: 1px solid #222; padding-bottom: 15px; width: 200px; }
         .date-display { font-size: 14px; color: #666; display: block; letter-spacing: 1px; }
         .time-display { font-size: 22px; font-weight: 700; display: block; margin-top: 5px; font-variant-numeric: tabular-nums; }
 
-        /* 보행자 신호등 본체 (사각형) */
+        /* 신호등 본체 */
         .pedestrian-signal {
-            width: 130px; background: var(--signal-body); padding: 15px; border-radius: 25px;
+            width: 130px; background: var(--signal-body); padding: 20px; border-radius: 30px;
             box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 0 2px rgba(255,255,255,0.1);
-            border: 4px solid #333; margin-bottom: 20px;
+            border: 3px solid #2a2a2a; margin-bottom: 30px;
         }
 
-        /* 램프 칸 */
+        /* 램프 구역 (항상 어두운 배경) */
         .lamp-section {
-            width: 100px; height: 100px; background: #000; border-radius: 15px;
-            margin: 10px auto; display: flex; align-items: center; justify-content: center;
-            position: relative; overflow: hidden;
+            width: 110px; height: 110px; background: #000; border-radius: 18px;
+            margin: 15px auto; display: flex; align-items: center; justify-content: center;
+            border: 2px solid #222; box-shadow: inset 0 5px 15px rgba(0,0,0,0.8);
         }
 
-        /* 사람 아이콘 SVG */
-        .walker-svg { width: 70px; height: 70px; fill: var(--off); transition: 0.2s; }
+        /* 사람 아이콘 SVG 공통 */
+        .walker-svg { width: 80px; height: 80px; fill: var(--off); transition: all 0.3s ease; }
         
-        /* 활성화 상태 */
-        .red-active .walker-svg.stop { fill: var(--red); filter: drop-shadow(0 0 15px var(--red)); }
-        .green-active .walker-svg.walk { fill: var(--green); filter: drop-shadow(0 0 15px var(--green)); }
+        /* [수정1 & 2] 빨간불 활성화 시: 배경은 그대로, 아이콘만 빛남 & 자연스러운 포즈 */
+        .red-active .walker-svg.stop { 
+            fill: var(--red); 
+            filter: drop-shadow(0 0 15px var(--red)); 
+        }
 
-        /* 초록불 깜빡임 애니메이션 */
-        @keyframes blink { 50% { fill: var(--off); filter: none; } }
-        .blinking .walker-svg.walk { animation: blink 0.5s step-end infinite; }
+        /* 초록불 활성화 시 */
+        .green-active .walker-svg.walk { 
+            fill: var(--green); 
+            filter: drop-shadow(0 0 15px var(--green)); 
+        }
 
-        #time { font-size: 70px; font-weight: 800; margin: 5px 0; font-variant-numeric: tabular-nums; }
-        #state { font-size: 18px; margin-bottom: 30px; font-weight: 700; }
+        /* [수정3] 깜빡임 속도 조절 (1초 간격, 부드럽게) */
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+        .blinking .walker-svg.walk { animation: blink 1.0s infinite; }
 
-        /* 버튼 컨테이너 */
+        #time { font-size: 80px; font-weight: 800; margin: 5px 0; font-variant-numeric: tabular-nums; letter-spacing: -3px; }
+        #state { font-size: 20px; margin-bottom: 40px; font-weight: 700; letter-spacing: -0.5px; }
+
+        /* 하단 컨트롤 영역 */
         .sync-container { width: 100%; max-width: 320px; background: #16171a; padding: 15px; border-radius: 20px; border: 1px solid #25272a; }
         .sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .sync-btn { padding: 18px 5px; border: 1px solid #2a2c30; border-radius: 12px; background: #1f2124; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
         .sync-btn:active { transform: scale(0.96); background: #111; }
 
-        .admin-toggle-btn { margin-top: 20px; background: none; border: none; color: #444; cursor: pointer; font-size: 12px; text-decoration: underline; }
+        .admin-toggle-btn { margin-top: 30px; background: none; border: none; color: #444; cursor: pointer; font-size: 13px; text-decoration: underline; text-underline-offset: 4px; }
         #admin-panel { display: none; width: 100%; max-width: 320px; background: #16171a; padding: 20px; border-radius: 20px; border: 1px solid #333; margin-top: 15px; }
-        .admin-input-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; color: #888; }
-        input { width: 80px; padding: 8px; border-radius: 8px; border: 1px solid #333; background: #000; color: #fff; text-align: center; font-weight: 700; }
-        .save-btn { width: 100%; padding: 15px; background: #fff; border: none; color: #000; border-radius: 12px; cursor: pointer; font-weight: 800; margin-top: 10px; }
+        .admin-input-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; color: #888; font-weight: 600; }
+        input { width: 80px; padding: 10px; border-radius: 10px; border: 1px solid #333; background: #000; color: #fff; text-align: center; font-weight: 700; font-size: 15px; }
+        .save-btn { width: 100%; padding: 15px; background: #fff; border: none; color: #000; border-radius: 15px; cursor: pointer; font-weight: 800; margin-top: 10px; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -75,10 +86,14 @@
 
     <div class="pedestrian-signal" id="signal-box">
         <div class="lamp-section" id="red-section">
-            <svg class="walker-svg stop" viewBox="0 0 24 24"><path d="M12,2A2,2 0 0,1 14,4A2,2 0 0,1 12,6A2,2 0 0,1 10,4A2,2 0 0,1 12,2M11,22V15H8V9H16V15H13V22H11Z" /></svg>
+            <svg class="walker-svg stop" viewBox="0 0 24 24">
+                <path d="M12 2C13.1 2 14 2.9 14 4s-0.9 2-2 2-2-0.9-2-2 0.9-2 2-2zM10.5 7h3c0.83 0 1.5 0.67 1.5 1.5v4.5h-1v8h-1.5v-7h-1v7H9v-8h-1V8.5C8 7.67 8.67 7 9.5 7z"/>
+            </svg>
         </div>
         <div class="lamp-section" id="green-section">
-            <svg class="walker-svg walk" viewBox="0 0 24 24"><path d="M13.5,5.5L12,5V3.5L13.5,2V5.5M10.2,12.5L8,11V9H15V13L13,11V16H11V21H9V16L10.2,12.5M12.5,22H14.5L16.5,15.5L18,17V22H20V15L17.5,12.5L16,14L15,12V10L14,9H10L9,10V14L11,15.5L12.5,22Z" /></svg>
+            <svg class="walker-svg walk" viewBox="0 0 24 24">
+                <path d="M13.5,5.5L12,5V3.5L13.5,2V5.5M10.2,12.5L8,11V9H15V13L13,11V16H11V21H9V16L10.2,12.5M12.5,22H14.5L16.5,15.5L18,17V22H20V15L17.5,12.5L16,14L15,12V10L14,9H10L9,10V14L11,15.5L12.5,22Z" />
+            </svg>
         </div>
     </div>
 
@@ -175,10 +190,8 @@
                     const isRed = (step.state === "RED");
                     const signalBox = document.getElementById('signal-box');
                     
-                    // 신호 상태 적용
                     signalBox.className = isRed ? "pedestrian-signal red-active" : "pedestrian-signal green-active";
                     
-                    // 초록불 15초 남았을 때 깜빡임 조건
                     if(!isRed && rem <= 15) {
                         signalBox.classList.add('blinking');
                     } else {
@@ -187,7 +200,7 @@
 
                     const sEl = document.getElementById('state');
                     const tEl = document.getElementById('time');
-                    sEl.innerText = isRed ? "STOP · 빨간불" : "GO · 초록불";
+                    sEl.innerText = isRed ? "STOP  ·  빨간불" : "GO  ·  초록불";
                     sEl.style.color = isRed ? "var(--red)" : "var(--green)";
                     tEl.innerText = rem;
                     tEl.style.color = isRed ? "var(--red)" : "var(--green)";
