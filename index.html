@@ -47,11 +47,17 @@ const adminBtn = document.getElementById('adminBtn');
 const applyBtn = document.getElementById('applyBtn');
 const resetBtn = document.getElementById('resetBtn');
 const adminPanel = document.getElementById('adminPanel');
-const timer = document.getElementById('timer');
-const status = document.getElementById('status');
 const redLight = document.getElementById('redLight');
 const greenLight = document.getElementById('greenLight');
+const status = document.getElementById('status');
+const timer = document.getElementById('timer');
 const clock = document.getElementById('clock');
+
+// 입력창들도 참조해야 관리자 설정이 작동합니다.
+const red1 = document.getElementById('red1');
+const green1 = document.getElementById('green1');
+const red2 = document.getElementById('red2');
+const green2 = document.getElementById('green2');
 
 startBtn.onclick = () => set(startRef, getServerTime());
 
