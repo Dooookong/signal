@@ -1,195 +1,57 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <title>실시간 신호등 동기화</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-    <style>
-        :root {
-            --bg-color: #0f1113;
-            --red-main: #ff3b3b;
-            --green-main: #00ff90;
-            --off-light: #2a2d30;
-        }
+<style>
+    /* 관리자 패널 숨기기 */
+    #adminPanel { display: none; margin-top: 20px; transition: all 0.5s; }
+    
+    /* 버튼 세련되게 만들기 */
+    .admin-toggle { background: none; border: 1px solid #333; color: #555; font-size: 12px; margin-top: 50px; cursor: pointer; }
+    
+    /* 전국 신호등 목록을 위한 컨테이너 (확장용) */
+    .signal-card {
+        background: #1a1c1e;
+        border-radius: 20px;
+        padding: 20px;
+        border: 1px solid #2a2d30;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+</style>
 
-        body { 
-            background-color: var(--bg-color); 
-            color: #ffffff; 
-            text-align: center; 
-            font-family: "Pretendard", sans-serif; 
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            min-height: 100vh;
-        }
-
-        #clock { font-size: 14px; color: #666; margin-bottom: 20px; }
-
-        .traffic-light {
-            width: 120px;
-            background: #1a1c1e;
-            padding: 20px;
-            border-radius: 40px;
-            margin: 0 auto;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            border: 2px solid #2a2d30;
-        }
-
-        .light {
-            width: 80px;
-            height: 80px;
-            background-color: var(--off-light);
-            border-radius: 50%;
-            margin: 15px auto;
-            transition: all 0.3s ease;
-        }
-
-        .light.red.active { background-color: var(--red-main); box-shadow: 0 0 40px rgba(255, 59, 59, 0.5); }
-        .light.green.active { background-color: var(--green-main); box-shadow: 0 0 40px rgba(0, 255, 144, 0.5); }
-
-        #time { font-size: 80px; font-weight: 700; margin: 20px 0; font-variant-numeric: tabular-nums; }
-        #state { font-size: 18px; margin-bottom: 30px; font-weight: 500; }
-
-        .sync-panel {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            max-width: 320px;
-            margin: 0 auto;
-        }
-
-        .sync-btn {
-            padding: 18px 10px;
-            border: 1px solid #3a3d40;
-            border-radius: 12px;
-            background: #1a1c1e;
-            color: white;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .sync-btn.red-btn { border-left: 5px solid var(--red-main); }
-        .sync-btn.green-btn { border-left: 5px solid var(--green-main); }
-        .sync-btn:active { background: #333; transform: scale(0.95); }
-        
-        .panel-label { grid-column: span 2; font-size: 12px; color: #666; margin-bottom: 5px; }
-    </style>
-</head>
-<body>
-
-    <div id="clock">시계 동기화 중...</div>
-
+<div class="signal-card">
+    <div id="clock">SEOUL --:--:--</div>
     <div class="traffic-light">
         <div id="redLight" class="light red"></div>
         <div id="greenLight" class="light green"></div>
     </div>
-
     <div id="time">--</div>
-    <div id="state">버튼을 눌러 동기화하세요</div>
+    <div id="state">데이터 로드 중...</div>
+</div>
 
+<button class="admin-toggle" id="adminToggle">⚙️ 동기화 모드 켜기</button>
+
+<div id="adminPanel">
     <div class="sync-panel">
         <div class="panel-label">실제 신호가 시작되는 순간 누르세요</div>
-        <button class="sync-btn red-btn" data-index="0">🔴 RED 1</button>
-        <button class="sync-btn green-btn" data-index="1">🟢 GREEN 1</button>
-        <button class="sync-btn red-btn" data-index="2">🔴 RED 2</button>
-        <button class="sync-btn green-btn" data-index="3">🟢 GREEN 2</button>
+        <button class="sync-btn red-btn" data-index="0">R1</button>
+        <button class="sync-btn green-btn" data-index="1">G1</button>
+        <button class="sync-btn red-btn" data-index="2">R2</button>
+        <button class="sync-btn green-btn" data-index="3">G2</button>
     </div>
+</div>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    // ... (Firebase 설정은 동일)
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyAxwM-IBryLUHgCkOCFphd2GVhqILAINAk",
-        authDomain: "signal-902a9.firebaseapp.com",
-        databaseURL: "https://signal-902a9-default-rtdb.firebaseio.com",
-        projectId: "signal-902a9",
-        storageBucket: "signal-902a9.firebasestorage.app",
-        messagingSenderId: "1040774154277",
-        appId: "1:1040774154277:web:21c0ca2b2b2e9f6dca17cc"
+    // 관리자 패널 토글 기능 추가
+    const adminToggle = document.getElementById('adminToggle');
+    const adminPanel = document.getElementById('adminPanel');
+    
+    adminToggle.onclick = () => {
+        const pw = prompt("관리자 비밀번호를 입력하세요");
+        if (pw === "1234") { // 비밀번호 설정
+            adminPanel.style.display = "block";
+            adminToggle.style.display = "none";
+        }
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    // [측정 데이터]
-    const PATTERN = [
-        { state: "RED", duration: 110 },
-        { state: "GREEN", duration: 26.5 },
-        { state: "RED", duration: 35.5 },
-        { state: "GREEN", duration: 26.5 }
-    ];
-
-    const TOTAL = PATTERN.reduce((sum, p) => sum + p.duration, 0);
-    let startTime = null;
-
-    const redLight = document.getElementById("redLight");
-    const greenLight = document.getElementById("greenLight");
-    const stateText = document.getElementById("state");
-    const timeText = document.getElementById("time");
-    const clockText = document.getElementById("clock");
-
-    // 동기화 버튼 클릭 이벤트
-    document.querySelectorAll('.sync-btn').forEach(btn => {
-        btn.onclick = () => {
-            const index = parseInt(btn.getAttribute('data-index'));
-            let offset = 0;
-            for(let i=0; i < index; i++) {
-                offset += PATTERN[i].duration;
-            }
-            // 현재 시각에서 해당 패턴의 시작점(offset)만큼 뺀 시간을 startTime으로 설정
-            const newStartTime = (Date.now() / 1000) - offset;
-            set(ref(db, "signal/start"), newStartTime);
-        };
-    });
-
-    onValue(ref(db, "signal/start"), snapshot => {
-        startTime = snapshot.val();
-    });
-
-    function update() {
-        const now = new Date();
-        clockText.innerText = "SEOUL " + now.toLocaleTimeString("ko-KR", {hour12: false});
-
-        if (startTime) {
-            const currentTime = Date.now() / 1000;
-            let cycle = (currentTime - startTime) % TOTAL;
-            let accumulated = 0;
-
-            for (let step of PATTERN) {
-                if (cycle < accumulated + step.duration) {
-                    const remaining = Math.ceil(accumulated + step.duration - cycle);
-                    
-                    redLight.classList.toggle("active", step.state === "RED");
-                    greenLight.classList.toggle("active", step.state === "GREEN");
-
-                    if (step.state === "GREEN") {
-                        stateText.innerText = "GO · 초록불";
-                        stateText.style.color = "var(--green-main)";
-                        timeText.style.color = "var(--green-main)";
-                    } else {
-                        stateText.innerText = "STOP · 빨간불";
-                        stateText.style.color = "var(--red-main)";
-                        timeText.style.color = "var(--red-main)";
-                    }
-                    timeText.innerText = remaining;
-                    break;
-                }
-                accumulated += step.duration;
-            }
-        }
-        requestAnimationFrame(update);
-    }
-    update();
+    // ... (나머지 로직은 이전과 동일)
 </script>
-</body>
-</html>
