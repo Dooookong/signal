@@ -1,57 +1,84 @@
-<style>
-    /* 관리자 패널 숨기기 */
-    #adminPanel { display: none; margin-top: 20px; transition: all 0.5s; }
-    
-    /* 버튼 세련되게 만들기 */
-    .admin-toggle { background: none; border: 1px solid #333; color: #555; font-size: 12px; margin-top: 50px; cursor: pointer; }
-    
-    /* 전국 신호등 목록을 위한 컨테이너 (확장용) */
-    .signal-card {
-        background: #1a1c1e;
-        border-radius: 20px;
-        padding: 20px;
-        border: 1px solid #2a2d30;
-        max-width: 400px;
-        margin: 0 auto;
-    }
-</style>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>전국 신호등 지도 - 시그널 맵</title>
+    <script type="module" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=YOUR_KAKAO_APP_KEY"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: "Pretendard", sans-serif; }
+        #map { width: 100%; height: 100vh; }
+        
+        /* 지도 위 커스텀 오버레이(신호등 팝업) 스타일 */
+        .node-popup {
+            background: #1a1c1e;
+            border-radius: 15px;
+            padding: 15px;
+            border: 2px solid #333;
+            color: white;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            position: relative;
+            bottom: 120px; /* 마커 위로 띄우기 */
+        }
+        .popup-time { font-size: 30px; font-weight: bold; margin: 5px 0; }
+        .popup-state { font-size: 12px; }
+    </style>
+</head>
+<body>
 
-<div class="signal-card">
-    <div id="clock">SEOUL --:--:--</div>
-    <div class="traffic-light">
-        <div id="redLight" class="light red"></div>
-        <div id="greenLight" class="light green"></div>
-    </div>
-    <div id="time">--</div>
-    <div id="state">데이터 로드 중...</div>
-</div>
-
-<button class="admin-toggle" id="adminToggle">⚙️ 동기화 모드 켜기</button>
-
-<div id="adminPanel">
-    <div class="sync-panel">
-        <div class="panel-label">실제 신호가 시작되는 순간 누르세요</div>
-        <button class="sync-btn red-btn" data-index="0">R1</button>
-        <button class="sync-btn green-btn" data-index="1">G1</button>
-        <button class="sync-btn red-btn" data-index="2">R2</button>
-        <button class="sync-btn green-btn" data-index="3">G2</button>
-    </div>
-</div>
+    <div id="map"></div>
 
 <script type="module">
-    // ... (Firebase 설정은 동일)
-
-    // 관리자 패널 토글 기능 추가
-    const adminToggle = document.getElementById('adminToggle');
-    const adminPanel = document.getElementById('adminPanel');
+    // Firebase 설정 (생략 - 기존 내용 그대로 유지)
     
-    adminToggle.onclick = () => {
-        const pw = prompt("관리자 비밀번호를 입력하세요");
-        if (pw === "1234") { // 비밀번호 설정
-            adminPanel.style.display = "block";
-            adminToggle.style.display = "none";
-        }
+    // 1. 지도 생성
+    const mapContainer = document.getElementById('map');
+    const mapOption = { 
+        center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
+        level: 3 
     };
+    const map = new kakao.maps.Map(mapContainer, mapOption);
 
-    // ... (나머지 로직은 이전과 동일)
+    // 2. 신호등 데이터 (나중엔 Firebase에서 가져올 목록)
+    const signalNodes = [
+        {
+            id: "seoul_01",
+            name: "시청 앞 교차로",
+            latlng: new kakao.maps.LatLng(37.5665, 126.9780),
+            pattern: [110, 26.5, 35.5, 26.5]
+        }
+    ];
+
+    // 3. 마커 및 팝업 표시 함수
+    signalNodes.forEach(node => {
+        const marker = new kakao.maps.Marker({
+            map: map,
+            position: node.latlng
+        });
+
+        // 커스텀 오버레이 생성 (우리가 만든 신호등 카운트다운을 여기에 삽입)
+        const content = `
+            <div class="node-popup">
+                <div class="popup-state" id="state_${node.id}">연결 중...</div>
+                <div class="popup-time" id="time_${node.id}">--</div>
+                <div style="font-size:10px; color:#666;">${node.name}</div>
+            </div>
+        `;
+
+        const overlay = new kakao.maps.CustomOverlay({
+            content: content,
+            position: node.latlng
+        });
+
+        // 마커 클릭 시 팝업 띄우기
+        kakao.maps.event.addListener(marker, 'click', () => {
+            overlay.setMap(map);
+        });
+    });
+
+    // 4. 실시간 업데이트 로직 (기존 update 함수를 루프 돌리도록 개량)
+    // ... (Firebase에서 startTime 가져와서 각 ID별로 매칭하는 코드)
 </script>
+</body>
+</html>
