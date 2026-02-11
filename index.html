@@ -2,83 +2,151 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>전국 신호등 지도 - 시그널 맵</title>
-    <script type="module" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=YOUR_KAKAO_APP_KEY"></script>
+    <title>시그널 맵 - 전국 신호등 실시간 지도</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=33ea8f4ecaedf7e2a2e4f457211594d5"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: "Pretendard", sans-serif; }
-        #map { width: 100%; height: 100vh; }
+        :root { --bg: #0f1113; --red: #ff3b3b; --green: #00ff90; --panel: #1a1c1e; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: "Pretendard", sans-serif; background: var(--bg); overflow: hidden; }
         
-        /* 지도 위 커스텀 오버레이(신호등 팝업) 스타일 */
-        .node-popup {
-            background: #1a1c1e;
-            border-radius: 15px;
-            padding: 15px;
-            border: 2px solid #333;
-            color: white;
-            text-align: center;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
-            position: relative;
-            bottom: 120px; /* 마커 위로 띄우기 */
+        #map { width: 100%; height: 100%; z-index: 1; }
+
+        /* 하단 신호등 상세 정보 카드 */
+        #detailCard {
+            position: fixed; bottom: -400px; left: 0; right: 0; 
+            background: var(--panel); z-index: 100;
+            border-radius: 30px 30px 0 0; padding: 25px;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+            text-align: center; color: white;
         }
-        .popup-time { font-size: 30px; font-weight: bold; margin: 5px 0; }
-        .popup-state { font-size: 12px; }
+        #detailCard.active { bottom: 0; }
+
+        .traffic-light-mini {
+            display: flex; justify-content: center; gap: 15px; margin-bottom: 10px;
+        }
+        .lamp { width: 40px; height: 40px; border-radius: 50%; background: #333; transition: 0.3s; }
+        .lamp.red.on { background: var(--red); box-shadow: 0 0 20px var(--red); }
+        .lamp.green.on { background: var(--green); box-shadow: 0 0 20px var(--green); }
+
+        #mainTimer { font-size: 50px; font-weight: 800; margin: 5px 0; }
+
+        /* 동기화 버튼 (세련된 그리드 스타일) */
+        .sync-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .sync-item { 
+            background: #2a2d30; border: none; padding: 12px; color: #ccc;
+            border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+        }
+        .sync-item:active { transform: scale(0.95); background: #3a3d40; }
+
+        #closeBtn { position: absolute; top: 15px; right: 20px; background: none; border: none; color: #666; font-size: 20px; }
     </style>
 </head>
 <body>
 
     <div id="map"></div>
 
+    <div id="detailCard">
+        <button id="closeBtn">✕</button>
+        <div id="nodeName" style="font-size: 14px; color: #aaa; margin-bottom: 15px;">신호등 위치</div>
+        <div class="traffic-light-mini">
+            <div id="l-red" class="lamp red"></div>
+            <div id="l-green" class="lamp green"></div>
+        </div>
+        <div id="mainTimer">--</div>
+        <div id="mainState" style="font-size: 16px; font-weight: 600;">마커를 선택하세요</div>
+
+        <div class="sync-grid">
+            <button class="sync-item" onclick="sync(0)">R1 시작</button>
+            <button class="sync-item" onclick="sync(1)">G1 시작</button>
+            <button class="sync-item" onclick="sync(2)">R2 시작</button>
+            <button class="sync-item" onclick="sync(3)">G2 시작</button>
+        </div>
+    </div>
+
 <script type="module">
-    // Firebase 설정 (생략 - 기존 내용 그대로 유지)
-    
-    // 1. 지도 생성
-    const mapContainer = document.getElementById('map');
-    const mapOption = { 
-        center: new kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심
-        level: 3 
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    // Firebase 설정 (본인 정보 유지)
+    const firebaseConfig = {
+        apiKey: "AIzaSyAxwM-IBryLUHgCkOCFphd2GVhqILAINAk",
+        authDomain: "signal-902a9.firebaseapp.com",
+        databaseURL: "https://signal-902a9-default-rtdb.firebaseio.com",
+        projectId: "signal-902a9",
+        storageBucket: "signal-902a9.firebasestorage.app",
+        messagingSenderId: "1040774154277",
+        appId: "1:1040774154277:web:21c0ca2b2b2e9f6dca17cc"
     };
-    const map = new kakao.maps.Map(mapContainer, mapOption);
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-    // 2. 신호등 데이터 (나중엔 Firebase에서 가져올 목록)
-    const signalNodes = [
-        {
-            id: "seoul_01",
-            name: "시청 앞 교차로",
-            latlng: new kakao.maps.LatLng(37.5665, 126.9780),
-            pattern: [110, 26.5, 35.5, 26.5]
-        }
-    ];
+    // [전국 확장용 데이터 구조 예시]
+    const PATTERN = [110, 26.5, 35.5, 26.5]; 
+    const TOTAL = PATTERN.reduce((a, b) => a + b, 0);
+    let startTime = null;
 
-    // 3. 마커 및 팝업 표시 함수
-    signalNodes.forEach(node => {
-        const marker = new kakao.maps.Marker({
-            map: map,
-            position: node.latlng
-        });
+    // 카카오 지도 초기화
+    const container = document.getElementById('map');
+    const options = { center: new kakao.maps.LatLng(37.566826, 126.9786567), level: 3 };
+    const map = new kakao.maps.Map(container, options);
 
-        // 커스텀 오버레이 생성 (우리가 만든 신호등 카운트다운을 여기에 삽입)
-        const content = `
-            <div class="node-popup">
-                <div class="popup-state" id="state_${node.id}">연결 중...</div>
-                <div class="popup-time" id="time_${node.id}">--</div>
-                <div style="font-size:10px; color:#666;">${node.name}</div>
-            </div>
-        `;
-
-        const overlay = new kakao.maps.CustomOverlay({
-            content: content,
-            position: node.latlng
-        });
-
-        // 마커 클릭 시 팝업 띄우기
-        kakao.maps.event.addListener(marker, 'click', () => {
-            overlay.setMap(map);
-        });
+    // 마커 생성
+    const marker = new kakao.maps.Marker({
+        position: new kakao.maps.LatLng(37.566826, 126.9786567),
+        map: map
     });
 
-    // 4. 실시간 업데이트 로직 (기존 update 함수를 루프 돌리도록 개량)
-    // ... (Firebase에서 startTime 가져와서 각 ID별로 매칭하는 코드)
+    // 마커 클릭 시 카드 노출
+    kakao.maps.event.addListener(marker, 'click', function() {
+        document.getElementById('detailCard').classList.add('active');
+        document.getElementById('nodeName').innerText = "서울 시청 앞 교차로";
+    });
+
+    document.getElementById('closeBtn').onclick = () => document.getElementById('detailCard').classList.remove('active');
+
+    // 동기화 함수 (전역 연결)
+    window.sync = (index) => {
+        let offset = 0;
+        for(let i=0; i<index; i++) offset += PATTERN[i];
+        const newStart = (Date.now() / 1000) - offset;
+        set(ref(db, "signal/start"), newStart);
+    };
+
+    onValue(ref(db, "signal/start"), snap => startTime = snap.val());
+
+    // 실시간 루프
+    function update() {
+        if(startTime) {
+            const now = Date.now() / 1000;
+            let cycle = (now - startTime) % TOTAL;
+            let acc = 0;
+            
+            const lRed = document.getElementById('l-red');
+            const lGreen = document.getElementById('l-green');
+            const timer = document.getElementById('mainTimer');
+            const state = document.getElementById('mainState');
+
+            for(let i=0; i<PATTERN.length; i++) {
+                if(cycle < acc + PATTERN[i]) {
+                    const rem = Math.ceil(acc + PATTERN[i] - cycle);
+                    const isRed = (i === 0 || i === 2);
+                    
+                    lRed.classList.toggle('on', isRed);
+                    lGreen.classList.toggle('on', !isRed);
+                    timer.innerText = rem;
+                    timer.style.color = isRed ? "var(--red)" : "var(--green)";
+                    state.innerText = isRed ? "STOP" : "GO";
+                    state.style.color = timer.style.color;
+                    break;
+                }
+                acc += PATTERN[i];
+            }
+        }
+        requestAnimationFrame(update);
+    }
+    update();
 </script>
 </body>
 </html>
