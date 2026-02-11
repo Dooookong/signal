@@ -234,7 +234,7 @@ onValue(startRef, snap => {
 function updateClock() {
   const now = new Date(getServerTime());
   const kr = new Date(now.toLocaleString("en-US",{timeZone:"Asia/Seoul"}));
-  clock.innerText = `현재 시각: ${kr.toLocaleTimeString()}`;
+  clock.innerText = `KR 현재 시각: ${kr.toLocaleTimeString()}`;
   requestAnimationFrame(updateClock);
 }
 
